@@ -166,7 +166,11 @@ function SentenceRow({
       <div className="sentence-summary">
         <button className="sentence-main" onClick={() => setOpen((value) => !value)}>
           <span className="sentence-number">{String(index + 1).padStart(3, "0")}</span>
-          <span className="sentence-text"><b>{card.jp}</b><small>{card.zh}</small></span>
+          <span className="sentence-text">
+            <b>{card.jp}</b>
+            <em>{card.kana}</em>
+            <small>{card.zh}</small>
+          </span>
           <span className="sentence-chevron">{open ? "−" : "+"}</span>
         </button>
         <button

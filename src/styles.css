@@ -491,8 +491,9 @@ body {
 .sentence-main { display: grid; grid-template-columns: 33px 1fr 20px; gap: 8px; align-items: center; min-width: 0; padding: 11px 4px 11px 11px; border: 0; text-align: left; background: transparent; }
 .sentence-number { color: #cba6b5; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 7px; }
 .sentence-text { min-width: 0; }
-.sentence-text b, .sentence-text small { display: block; }
+.sentence-text b, .sentence-text em, .sentence-text small { display: block; }
 .sentence-text b { overflow: hidden; color: #493944; font-family: var(--serif); font-size: 15px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.sentence-text em { overflow: hidden; margin-top: 2px; color: #b25978; font-size: 8px; font-style: normal; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
 .sentence-text small { overflow: hidden; margin-top: 2px; color: #9b8490; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .sentence-chevron { color: #cf8da3; font-size: 15px; font-weight: 300; text-align: center; }
 .heart-button { width: 34px; border: 0; color: #d99bb0; font-size: 17px; background: transparent; }
