@@ -204,7 +204,7 @@ function DaySummary({ dayNumber }: { dayNumber: number }) {
     <div className="summary-module">
       <section>
         <span className="summary-kicker">TODAY'S WORDS</span>
-        <h2>10 个场景词</h2>
+        <h2>5 个核心场景词</h2>
         <div className="summary-words">
           {day.items.map((item) => (
             <div key={item.jp}><b>{item.jp}</b><span>{item.kana}</span><small>{item.zh}</small></div>
@@ -213,7 +213,7 @@ function DaySummary({ dayNumber }: { dayNumber: number }) {
       </section>
       <section>
         <span className="summary-kicker">GRAMMAR PATTERNS</span>
-        <h2>10 个表达功能</h2>
+        <h2>20 种表达功能</h2>
         <div className="grammar-summary-list">
           {day.frames.map((frame, index) => (
             <details key={`${frame.grammar}-${index}`}>

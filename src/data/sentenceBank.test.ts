@@ -16,10 +16,10 @@ describe("60-day sentence bank", () => {
 
   it("includes words, grammar summaries and related expressions for each day", () => {
     for (const day of DAYS) {
-      expect(day.items).toHaveLength(10);
-      expect(day.frames).toHaveLength(10);
-      expect(day.grammarSummary.length).toBeGreaterThanOrEqual(8);
-      expect(day.grammarSummary.length).toBeLessThanOrEqual(10);
+      expect(day.items).toHaveLength(5);
+      expect(day.frames).toHaveLength(20);
+      expect(day.grammarSummary.length).toBeGreaterThanOrEqual(16);
+      expect(day.grammarSummary.length).toBeLessThanOrEqual(20);
       expect(day.cards.every((card) => card.kana && card.zh && card.why && card.related.length > 0)).toBe(true);
     }
   });
