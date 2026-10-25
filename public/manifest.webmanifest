@@ -1,0 +1,16 @@
+{
+  "name": "Kotoba60 · 日语口语陪练器",
+  "short_name": "Kotoba60",
+  "description": "只逼你开口，然后记住。每天 25 分钟日语口语闭环与 SRS 弱点回收。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f1e7",
+  "theme_color": "#f5f1e7",
+  "icons": [
+    { "src": "./kotoba-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./kotoba-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

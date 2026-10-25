@@ -1,0 +1,10 @@
+<!doctype html>
+<html>
+  <body>
+    <script>
+      sessionStorage.setItem("kotoba60:redirect", location.pathname + location.search);
+      var parts = location.pathname.split("/").filter(Boolean);
+      location.replace("/" + (parts[0] || "") + "/");
+    </script>
+  </body>
+</html>
