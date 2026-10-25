@@ -104,6 +104,7 @@ export function DialoguePage({ scene, previousScene, studyDay, navigate }: PageP
   function endListen() {
     recognitionRef.current?.stop();
     recognitionRef.current = null;
+    setHint("已松开，正在整理识别文字…");
   }
 
   async function submit() {
@@ -217,10 +218,20 @@ export function DialoguePage({ scene, previousScene, studyDay, navigate }: PageP
         <div>
           <button
             className="mic-round"
-            onPointerDown={(event) => { event.preventDefault(); beginListen(); }}
-            onPointerUp={endListen}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              event.currentTarget.setPointerCapture(event.pointerId);
+              beginListen();
+            }}
+            onPointerUp={(event) => {
+              event.preventDefault();
+              endListen();
+              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+              }
+            }}
             onPointerCancel={endListen}
-            onPointerLeave={endListen}
+            onContextMenu={(event) => event.preventDefault()}
             aria-label="按住说话，松开结束"
           >按住说</button>
           <button className="stuck-button" onClick={askForGuide}>需要引导</button>

@@ -1,9 +1,15 @@
+import { useState } from "react";
 import { Page, PrimaryButton } from "../components/Page";
+import { LOCAL_FLAVORS } from "../data/localFlavor";
+import { speakJapanese } from "../lib/speech";
 import type { PageProps } from "./types";
 
-export function HomePage({ scene, studyDay, repo, navigate, refresh }: PageProps) {
+export function HomePage({ scene, studyDay, repo, navigate, shuffleScene, refresh }: PageProps) {
   const due = repo.due(studyDay);
   const active = repo.active();
+  const [flavorOffset, setFlavorOffset] = useState(0);
+  const flavor = LOCAL_FLAVORS[(studyDay + scene.id + flavorOffset) % LOCAL_FLAVORS.length];
+  const branch = scene.variations[flavorOffset % scene.variations.length];
   return (
     <Page className="home-page">
       <div className="home-mark">K60</div>
@@ -18,6 +24,29 @@ export function HomePage({ scene, studyDay, repo, navigate, refresh }: PageProps
           <p>{scene.goal}</p>
         </div>
         <div className="ticket-number">{String(scene.id).padStart(2, "0")}</div>
+        <button className="scene-change" onClick={shuffleScene}>换一场</button>
+      </section>
+
+      <section className="local-flavor-card">
+        <div className="flavor-top">
+          <span>地方耳朵 · {flavor.region}</span>
+          <button onClick={() => setFlavorOffset((value) => value + 1)}>换一句</button>
+        </div>
+        <h2>{flavor.phrase}</h2>
+        <p className="flavor-kana">{flavor.kana} · {flavor.meaning}</p>
+        <p>{flavor.use}</p>
+        <div className="flavor-standard"><small>标准日语</small><b>{flavor.standard}</b></div>
+        <p className="flavor-caution">{flavor.caution}</p>
+        <div className="flavor-actions">
+          <button onClick={() => speakJapanese(flavor.phrase)}>听本地语气</button>
+          <span>{flavor.challenge}</span>
+        </div>
+      </section>
+
+      <section className="micro-branch">
+        <div><small>今日剧情支线</small><b>{branch.setup}</b></div>
+        <p>{branch.task}</p>
+        <button onClick={() => navigate("dialogue")}>用引导模式试这一支线</button>
       </section>
 
       <div className="home-metrics">

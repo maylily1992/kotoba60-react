@@ -63,10 +63,20 @@ export function RepeatPage({ scene, studyDay, repo, navigate, refresh }: PagePro
         <textarea value={input} onChange={(event) => setInput(event.target.value)} placeholder="现在再说一遍。" />
         <div className="inline-actions">
           <button
-            onPointerDown={(event) => { event.preventDefault(); beginListen(); }}
-            onPointerUp={endListen}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              event.currentTarget.setPointerCapture(event.pointerId);
+              beginListen();
+            }}
+            onPointerUp={(event) => {
+              event.preventDefault();
+              endListen();
+              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+              }
+            }}
             onPointerCancel={endListen}
-            onPointerLeave={endListen}
+            onContextMenu={(event) => event.preventDefault()}
           >按住说话</button>
           <PrimaryButton onClick={evaluate} disabled={!input.trim()}>说完了</PrimaryButton>
         </div>

@@ -37,9 +37,14 @@ function routeFromLocation(): RouteName {
 export default function App() {
   const [route, setRoute] = useState<RouteName>(routeFromLocation);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [sceneOffset, setSceneOffset] = useState(() => {
+    const saved = Number(localStorage.getItem("kotoba60:scene-offset") ?? "0");
+    return Number.isFinite(saved) ? saved : 0;
+  });
   const studyDay = useMemo(() => studyDayIndex(), []);
-  const scene = SCENES[studyDay % SCENES.length];
-  const previousScene = SCENES[(studyDay - 1 + SCENES.length) % SCENES.length];
+  const sceneIndex = (studyDay + sceneOffset) % SCENES.length;
+  const scene = SCENES[sceneIndex];
+  const previousScene = SCENES[(sceneIndex - 1 + SCENES.length) % SCENES.length];
   const repo = useMemo(() => new WeakBookRepository(localStorage), []);
 
   useEffect(() => {
@@ -68,6 +73,14 @@ export default function App() {
     studyDay,
     repo,
     navigate,
+    shuffleScene: () => {
+      setSceneOffset((value) => {
+        const next = (value + 1) % SCENES.length;
+        localStorage.setItem("kotoba60:scene-offset", String(next));
+        return next;
+      });
+      setRoute("home");
+    },
     refresh: () => setRefreshTick((value) => value + 1),
   };
 

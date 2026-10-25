@@ -18,5 +18,6 @@ export interface PageProps {
   studyDay: number;
   repo: WeakBookRepository;
   navigate: (route: RouteName) => void;
+  shuffleScene: () => void;
   refresh: () => void;
 }

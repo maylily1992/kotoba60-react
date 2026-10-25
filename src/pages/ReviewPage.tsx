@@ -63,10 +63,20 @@ export function ReviewPage({ studyDay, repo, navigate, refresh }: PageProps) {
       <textarea value={input} onChange={(event) => setInput(event.target.value)} placeholder="先大声说，再输入你实际说的内容。" />
       <div className="inline-actions">
         <button
-          onPointerDown={(event) => { event.preventDefault(); beginListen(); }}
-          onPointerUp={endListen}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            beginListen();
+          }}
+          onPointerUp={(event) => {
+            event.preventDefault();
+            endListen();
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+          }}
           onPointerCancel={endListen}
-          onPointerLeave={endListen}
+          onContextMenu={(event) => event.preventDefault()}
         >按住回答</button>
         <button onClick={() => setRevealed(true)}>想不起来，显示答案</button>
       </div>

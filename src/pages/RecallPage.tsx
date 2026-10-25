@@ -13,7 +13,7 @@ import { saveRecording } from "../lib/db";
 import { createSession, readSession, updateSession } from "../lib/session";
 import type { PageProps } from "./types";
 
-type Phase = "ready" | "recording" | "confirm" | "scored";
+type Phase = "ready" | "recording" | "processing" | "confirm" | "scored";
 
 export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PageProps) {
   const learnerLines = useMemo(() => scene.dialogue.filter((line) => line.side === "learner"), [scene]);
@@ -33,6 +33,7 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
   const recognitionRef = useRef<RecognitionController | null>(null);
   const recordingRef = useRef<{ stop: () => Promise<{ blob: Blob; durationMs: number }> } | null>(null);
   const releaseRequested = useRef(false);
+  const holdingRef = useRef(false);
   const line = learnerLines[itemIndex];
   const mastered = score ? isRecallPassing(score) : false;
   const finalFailure = attempts.length >= 3 && !mastered;
@@ -85,6 +86,7 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
     if (phase === "recording") return;
     setError("");
     setPhase("recording");
+    holdingRef.current = true;
     startedAt.current = performance.now();
     releaseRequested.current = false;
     try {
@@ -101,6 +103,7 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
       recognitionRef.current = recognition;
       const recorder = recordingSupported() ? await startRecording().catch(() => null) : null;
       recordingRef.current = recorder;
+      if (releaseRequested.current) void recorder?.stop();
       const result = await recognition.result;
       const recording = recorder ? await recorder.stop() : null;
       if (recording?.blob.size) {
@@ -122,14 +125,19 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
       setError(cause instanceof Error ? cause.message : "没有识别到日语");
       setPhase("ready");
     } finally {
+      holdingRef.current = false;
       recognitionRef.current = null;
       recordingRef.current = null;
     }
   }
 
   function endHold() {
+    if (!holdingRef.current) return;
+    holdingRef.current = false;
     releaseRequested.current = true;
+    setPhase("processing");
     recognitionRef.current?.stop();
+    void recordingRef.current?.stop();
   }
 
   function scoreAnswer(value = transcript) {
@@ -170,10 +178,20 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
           <>
             <button
               className="mic-orb"
-              onPointerDown={(event) => { event.preventDefault(); void beginHold(); }}
-              onPointerUp={endHold}
+              onPointerDown={(event) => {
+                event.preventDefault();
+                event.currentTarget.setPointerCapture(event.pointerId);
+                void beginHold();
+              }}
+              onPointerUp={(event) => {
+                event.preventDefault();
+                endHold();
+                if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                  event.currentTarget.releasePointerCapture(event.pointerId);
+                }
+              }}
               onPointerCancel={endHold}
-              onPointerLeave={endHold}
+              onContextMenu={(event) => event.preventDefault()}
               aria-label="按住说话，松开结束"
             >
               <span>●</span>
@@ -189,6 +207,7 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
           </>
         )}
         {phase === "recording" && <div className="recording-state"><i /> 正在听你说…</div>}
+        {phase === "processing" && <div className="recording-state processing"><i /> 已松开，正在整理识别结果…</div>}
         {phase === "confirm" && (
           <div className="confirm-panel">
             <span>识别结果 · 请确认或直接修改错字</span>

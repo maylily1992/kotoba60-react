@@ -81,8 +81,10 @@ export function startJapaneseRecognition(options?: {
   let finalText = "";
   let confidence = 0;
   let alternatives: string[] = [];
+  let interimText = "";
   let settled = false;
   let timeout = 0;
+  let stopFallback = 0;
   let resolvePromise!: RecognitionController["result"] extends Promise<infer T> ? (value: T) => void : never;
   let rejectPromise!: (reason?: unknown) => void;
   const result = new Promise<{
@@ -98,11 +100,12 @@ export function startJapaneseRecognition(options?: {
     if (settled) return;
     settled = true;
     window.clearTimeout(timeout);
-    if (finalText || alternatives.length) {
+    window.clearTimeout(stopFallback);
+    if (finalText || alternatives.length || interimText) {
       resolvePromise({
-        transcript: alternatives[0] || finalText,
+        transcript: alternatives[0] || finalText || interimText,
         confidence,
-        alternatives,
+        alternatives: alternatives.length ? alternatives : [interimText],
       });
     } else if (sessionError) {
       rejectPromise(new Error(sessionError));
@@ -115,13 +118,15 @@ export function startJapaneseRecognition(options?: {
     const latest = event.results[event.results.length - 1];
     const candidates = Array.from({ length: latest.length }, (_, index) => latest[index].transcript.trim()).filter(Boolean);
     if (!latest.isFinal) {
-      options?.onInterim?.(candidates[0] || "");
+      interimText = candidates[0] || interimText;
+      options?.onInterim?.(interimText);
       return;
     }
     const best = latest[0];
     finalText = `${finalText} ${best.transcript}`.trim();
     confidence = Math.max(confidence, best.confidence || 0);
     alternatives = Array.from(new Set([...alternatives, ...candidates])).slice(0, 5);
+    interimText = "";
     options?.onInterim?.(alternatives[0]);
   };
   recognition.onerror = (event) => {
@@ -146,7 +151,12 @@ export function startJapaneseRecognition(options?: {
   return {
     result,
     stop: () => {
-      try { recognition.stop(); } catch { finish(); }
+      try {
+        recognition.stop();
+        stopFallback = window.setTimeout(() => finish(), 650);
+      } catch {
+        finish();
+      }
     },
     abort: () => {
       try { recognition.abort(); } catch { finish(); }
@@ -187,13 +197,15 @@ export async function startRecording(): Promise<{
   const recorder = new MediaRecorder(stream);
   const chunks: BlobPart[] = [];
   const startedAt = performance.now();
+  let stopped: Promise<{ blob: Blob; durationMs: number }> | null = null;
   recorder.ondataavailable = (event) => {
     if (event.data.size) chunks.push(event.data);
   };
   recorder.start();
   return {
     stop: () => {
-      return new Promise((resolve) => {
+      if (stopped) return stopped;
+      stopped = new Promise((resolve) => {
         const finish = () => {
           stream.getTracks().forEach((track) => track.stop());
           resolve({
@@ -205,8 +217,17 @@ export async function startRecording(): Promise<{
         if (recorder.state === "recording") recorder.stop();
         else finish();
       });
+      return stopped;
     },
     abort: () => {
+      if (stopped) {
+        void stopped;
+        return;
+      }
+      stopped = Promise.resolve({
+        blob: new Blob(chunks, { type: recorder.mimeType || "audio/webm" }),
+        durationMs: Math.round(performance.now() - startedAt),
+      });
       if (recorder.state === "recording") recorder.stop();
       stream.getTracks().forEach((track) => track.stop());
     },

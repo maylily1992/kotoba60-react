@@ -133,6 +133,55 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .scene-ticket b { display: block; margin-top: 8px; font-family: var(--serif); font-size: 25px; line-height: 1.35; }
 .scene-ticket p { margin: 7px 0 0; color: rgba(255,249,237,.75); font-size: 10px; line-height: 1.65; }
 .ticket-number { align-self: end; font-family: var(--serif); font-size: 52px; line-height: 1; opacity: .28; }
+.scene-change {
+  position: absolute;
+  top: 16px;
+  right: 17px;
+  padding: 5px 8px;
+  border: 1px solid rgba(255,249,237,.22);
+  border-radius: 99px;
+  color: rgba(255,249,237,.8);
+  font-size: 7px;
+  background: rgba(255,255,255,.08);
+}
+
+.local-flavor-card {
+  position: relative;
+  overflow: hidden;
+  margin-top: 13px;
+  padding: 18px;
+  border: 1px solid #dfc993;
+  border-radius: 20px 20px 20px 6px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(199,151,60,.14), transparent 40%),
+    #fbf4e3;
+}
+.flavor-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.flavor-top span { color: #8b651f; font-size: 8px; font-weight: 700; letter-spacing: .08em; }
+.flavor-top button { padding: 5px 7px; border: 1px solid #dfc993; border-radius: 99px; color: #8b651f; font-size: 7px; background: rgba(255,255,255,.5); }
+.local-flavor-card h2 { margin: 12px 0 2px; font-family: var(--serif); font-size: 27px; }
+.flavor-kana { margin: 0 !important; color: var(--navy) !important; font-size: 9px !important; }
+.local-flavor-card > p { margin: 9px 0 0; color: #766b55; font-size: 9px; line-height: 1.7; }
+.flavor-standard { display: flex; gap: 9px; align-items: center; margin-top: 11px; padding: 9px 10px; border-radius: 10px; background: rgba(255,255,255,.58); }
+.flavor-standard small { color: #937846; font-size: 7px; }
+.flavor-standard b { font-family: var(--serif); font-size: 14px; }
+.flavor-caution { color: #927d58 !important; }
+.flavor-actions { display: grid; grid-template-columns: auto 1fr; gap: 9px; align-items: center; margin-top: 12px; }
+.flavor-actions button { padding: 7px 9px; border: 0; border-radius: 9px; color: #fff; font-size: 8px; background: #a77b2c; }
+.flavor-actions span { color: #7e6f54; font-size: 8px; line-height: 1.5; }
+
+.micro-branch {
+  margin-top: 12px;
+  padding: 15px;
+  border: 1px dashed #b9c8ce;
+  border-radius: 15px;
+  background: rgba(232,238,241,.55);
+}
+.micro-branch div { display: grid; gap: 4px; }
+.micro-branch small { color: var(--navy); font-size: 7px; font-weight: 700; letter-spacing: .07em; }
+.micro-branch b { font-family: var(--serif); font-size: 16px; line-height: 1.5; }
+.micro-branch p { margin: 7px 0; color: var(--muted); font-size: 9px; line-height: 1.6; }
+.micro-branch button { padding: 0; border: 0; color: var(--red); font-size: 8px; background: transparent; }
 
 .home-metrics {
   display: grid;
