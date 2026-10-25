@@ -205,7 +205,13 @@ function CuratedSummary() {
           {CURATED_DAY_ONE.grammar.map((item) => (
             <details key={item.title}>
               <summary><b>{item.title}</b><small>{item.explain}</small></summary>
-              <div><p>{item.example}</p><span>{item.kana}</span></div>
+              <div className="grammar-detail">
+                <div className="grammar-formula"><span>接续</span><b>{item.formula}</b></div>
+                <div className="grammar-info"><span>什么时候用</span><p>{item.useWhen}</p></div>
+                <div className="grammar-info"><span>和相近语法有什么不同</span><p>{item.contrast}</p></div>
+                <div className="grammar-example"><span>例句</span><p>{item.example}</p><small>{item.kana}</small></div>
+                <div className="grammar-mistake"><b>常见错误</b><p>{item.mistake}</p></div>
+              </div>
             </details>
           ))}
         </div>

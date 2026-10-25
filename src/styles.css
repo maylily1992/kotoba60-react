@@ -737,6 +737,18 @@ body {
 .summary-grammar details > div { padding: 0 10px 10px; }
 .summary-grammar details p { margin: 0; color: #5e434e; font-family: var(--serif); font-size: 13px; }
 .summary-grammar details span { display: block; margin-top: 2px; color: #a77789; font-size: 8px; }
+.grammar-detail { display: grid; gap: 7px; }
+.grammar-formula { padding: 9px; border-radius: 8px; background: #fff; }
+.grammar-formula span, .grammar-info span, .grammar-example > span { display: block; color: #bc6f8a; font-size: 7px; font-weight: 700; }
+.grammar-formula b { display: block; margin-top: 3px; color: #654753; font-size: 10px; }
+.grammar-info { padding: 8px 0 0; border-top: 1px dashed #edcdd8; }
+.grammar-info p { margin-top: 3px !important; color: #856d79 !important; font-family: var(--sans) !important; font-size: 8px !important; line-height: 1.65; }
+.grammar-example { padding: 9px; border-radius: 8px; background: #fff; }
+.grammar-example p { margin-top: 3px !important; font-size: 14px !important; }
+.grammar-example small { display: block; margin-top: 2px; color: #ae7287; font-size: 8px; }
+.grammar-mistake { padding: 9px; border-left: 2px solid #e8a1b7; border-radius: 0 8px 8px 0; background: #fff3f7; }
+.grammar-mistake b { color: #ad4c6b; font-size: 7px; }
+.grammar-mistake p { margin-top: 3px !important; color: #8e6e7b !important; font-family: var(--sans) !important; font-size: 8px !important; line-height: 1.65; }
 .summary-transfer { display: grid; gap: 6px; }
 .summary-transfer > div { display: flex; gap: 8px; padding: 9px; border-radius: 9px; background: #fff1f6; }
 .summary-transfer > div > span { display: grid; width: 21px; height: 21px; flex: 0 0 21px; place-items: center; border-radius: 50%; color: #b74e6b; font-size: 7px; background: #ffdce8; }
