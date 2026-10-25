@@ -39,6 +39,7 @@ export default function App() {
   const [refreshTick, setRefreshTick] = useState(0);
   const studyDay = useMemo(() => studyDayIndex(), []);
   const scene = SCENES[studyDay % SCENES.length];
+  const previousScene = SCENES[(studyDay - 1 + SCENES.length) % SCENES.length];
   const repo = useMemo(() => new WeakBookRepository(localStorage), []);
 
   useEffect(() => {
@@ -63,6 +64,7 @@ export default function App() {
 
   const props: PageProps = {
     scene,
+    previousScene,
     studyDay,
     repo,
     navigate,

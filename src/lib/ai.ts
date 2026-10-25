@@ -92,6 +92,7 @@ export async function requestAiTurn(input: {
   history: Array<{ role: "user" | "assistant"; content: string }>;
   transcript: string;
   struggleCount: number;
+  memory: string[];
 }): Promise<AiStructuredReply> {
   if (!input.proxyUrl) throw new Error("未配置 AI 代理");
   const response = await fetch(input.proxyUrl, {
@@ -102,6 +103,7 @@ export async function requestAiTurn(input: {
       history: input.history,
       transcript: input.transcript,
       struggleCount: input.struggleCount,
+      memory: input.memory,
     }),
   });
   if (!response.ok) throw new Error(`AI 代理返回 ${response.status}`);

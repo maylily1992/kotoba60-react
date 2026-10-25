@@ -14,6 +14,7 @@ export type RouteName =
 
 export interface PageProps {
   scene: Scene;
+  previousScene: Scene;
   studyDay: number;
   repo: WeakBookRepository;
   navigate: (route: RouteName) => void;

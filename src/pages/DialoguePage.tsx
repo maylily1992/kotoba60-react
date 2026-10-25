@@ -15,7 +15,7 @@ const emotionLabel: Record<Emotion, string> = {
   impatient: "追问加快",
 };
 
-export function DialoguePage({ scene, studyDay, navigate }: PageProps) {
+export function DialoguePage({ scene, previousScene, studyDay, navigate }: PageProps) {
   const partnerLines = scene.dialogue.filter((line) => line.side === "partner");
   const learnerLines = scene.dialogue.filter((line) => line.side === "learner");
   const [turnIndex, setTurnIndex] = useState(0);
@@ -35,6 +35,13 @@ export function DialoguePage({ scene, studyDay, navigate }: PageProps) {
   const [busy, setBusy] = useState(false);
   const [proxyUrl, setProxyUrl] = useState(() => localStorage.getItem("kotoba60:ai-proxy") ?? "");
   const [showSettings, setShowSettings] = useState(false);
+  const [memory] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("kotoba60:role-memory:v1") ?? "[]") as string[];
+    } catch {
+      return [];
+    }
+  });
   const inputRef = useRef("");
   const hintTimer = useRef<number | null>(null);
 
@@ -111,6 +118,10 @@ export function DialoguePage({ scene, studyDay, navigate }: PageProps) {
           history: prior,
           transcript,
           struggleCount,
+          memory: [
+            `前回の場面: ${previousScene.title} / ${previousScene.goal}`,
+            ...memory,
+          ],
         });
         responseText = result.reply_ja;
         emotion = result.emotion;
@@ -143,6 +154,10 @@ export function DialoguePage({ scene, studyDay, navigate }: PageProps) {
     setInput("");
     setStruggleCount(0);
     if (turnIndex >= partnerLines.length - 1) {
+      localStorage.setItem(
+        "kotoba60:role-memory:v1",
+        JSON.stringify(Array.from(new Set([`${scene.title} / ${scene.goal}`, ...memory])).slice(0, 12)),
+      );
       navigate("feedback");
       return;
     }
@@ -163,6 +178,7 @@ export function DialoguePage({ scene, studyDay, navigate }: PageProps) {
         <span>ハルト · {simpleMode ? "简单模式" : emotionLabel[turns.at(-1)?.emotion ?? "neutral"]}</span>
         <button onClick={() => setShowSettings((value) => !value)}>AI 设置</button>
       </div>
+      <p className="role-memory">ハルト记得前一次：{previousScene.title}</p>
       {showSettings && (
         <div className="dialog-settings">
           <label>AI 代理地址<input value={proxyUrl} onChange={(event) => setProxyUrl(event.target.value)} placeholder="https://your-worker.workers.dev" /></label>

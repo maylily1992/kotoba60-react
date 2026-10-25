@@ -11,6 +11,7 @@ interface RequestBody {
   history?: Array<{ role: "user" | "assistant"; content: string }>;
   transcript?: string;
   struggleCount?: number;
+  memory?: string[];
 }
 
 const SYSTEM_PROMPT = `You are a Japanese role-play partner named Haruto.
@@ -47,6 +48,7 @@ export default {
       const userContent = [
         `Scene: ${scene.title ?? "daily conversation"} / ${scene.goal ?? ""}`,
         `Consecutive struggles: ${struggleCount}`,
+        ...(Array.isArray(body.memory) ? body.memory.slice(-5).map((item) => `Role memory: ${item}`) : []),
         struggleCount >= 2 ? "Use simpler Japanese mode." : "",
         `User transcript: ${body.transcript ?? ""}`,
       ].filter(Boolean).join("\n");

@@ -300,6 +300,7 @@ textarea, .text-fallback {
 }
 .pressure-bar span { font-size: 9px; }
 .pressure-bar button { border: 0; color: #fff; font-size: 8px; background: transparent; }
+.role-memory { margin: -3px 2px 10px; color: var(--muted); font-size: 8px; }
 .dialog-settings { display: grid; gap: 8px; margin-bottom: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 13px; background: var(--card); }
 .dialog-settings label { display: grid; gap: 5px; color: var(--muted); font-size: 8px; }
 .dialog-settings input { padding: 10px; border: 1px solid var(--line); border-radius: 9px; }
