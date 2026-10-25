@@ -11,7 +11,6 @@ import type { RecognitionController } from "../lib/speech";
 import type { FriendExpression } from "./lesson";
 import { buildFriendLesson } from "./lesson";
 import { HaruAvatar } from "./HaruAvatar";
-import { MicDiagnostics } from "../components/MicDiagnostics";
 
 type View = "home" | "lesson" | "notebook";
 type LessonStep = "meet" | "shadow" | "grammar" | "choose" | "speak" | "drill" | "done";
@@ -650,7 +649,6 @@ function SpeakStep({
           )}
         </section>
       )}
-      <MicDiagnostics />
     </>
   );
 }
