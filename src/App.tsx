@@ -1,5 +1,5 @@
-import { SentenceApp } from "./sentence/SentenceApp";
+import { CuratedApp } from "./content/CuratedApp";
 
 export default function App() {
-  return <SentenceApp />;
+  return <CuratedApp />;
 }

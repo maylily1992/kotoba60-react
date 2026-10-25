@@ -1,7 +1,7 @@
 {
-  "name": "Kotoba60 · 60天6000句",
+  "name": "Kotoba60 · 真实场景对话",
   "short_name": "Kotoba60",
-  "description": "60 天、每天 100 张日语日常句子卡，附假名、语法、用法与关联表达。",
+  "description": "按真实场景逐句编排日语对话，附平假名、中文、语法、语感和迁移练习。",
   "lang": "zh-CN",
   "start_url": "./",
   "scope": "./",
