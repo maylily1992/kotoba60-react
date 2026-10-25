@@ -2,7 +2,9 @@ name = "kotoba60-ai"
 main = "src/index.ts"
 compatibility_date = "2026-10-25"
 
-# Set these with:
-# wrangler secret put OPENAI_API_KEY
-# wrangler secret put OPENAI_MODEL
-# wrangler secret put ALLOWED_ORIGIN
+[vars]
+OPENAI_MODEL = "gpt-4.1-mini"
+ALLOWED_ORIGIN = "https://maylily1992.github.io"
+
+# OPENAI_API_KEY must be added as an encrypted Cloudflare secret.
+# Run ./setup-worker.command from the project folder.
