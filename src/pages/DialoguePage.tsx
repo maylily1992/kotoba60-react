@@ -3,7 +3,8 @@ import { Page, PrimaryButton } from "../components/Page";
 import { dialogueAudio } from "../data";
 import { requestAiTurn } from "../lib/ai";
 import { addFixes, addTurn, updateSession } from "../lib/session";
-import { recognizeJapanese, speakJapanese } from "../lib/speech";
+import { speakJapanese, startJapaneseRecognition } from "../lib/speech";
+import type { RecognitionController } from "../lib/speech";
 import { textSimilarity } from "../lib/scoring";
 import type { DialogueTurn, Emotion, FixItem } from "../types";
 import type { PageProps } from "./types";
@@ -25,7 +26,7 @@ export function DialoguePage({ scene, previousScene, studyDay, navigate }: PageP
       textJa: partnerLines[0].jp,
       textCn: partnerLines[0].zh,
       audioUrl: dialogueAudio(scene.id, 0),
-      emotion: "neutral",
+      emotion: "encouraging",
     },
   ]);
   const [input, setInput] = useState("");
@@ -43,6 +44,7 @@ export function DialoguePage({ scene, previousScene, studyDay, navigate }: PageP
     }
   });
   const inputRef = useRef("");
+  const recognitionRef = useRef<RecognitionController | null>(null);
   const hintTimer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -79,14 +81,29 @@ export function DialoguePage({ scene, previousScene, studyDay, navigate }: PageP
     }
   }
 
-  async function listen() {
+  function beginListen() {
     try {
-      const result = await recognizeJapanese({ onInterim: setInput, timeoutMs: 10_000 });
-      setInput(result.transcript);
-      setHint("");
+      const recognition = startJapaneseRecognition({
+        onInterim: setInput,
+        expected: partnerLines[Math.min(turnIndex, partnerLines.length - 1)].jp,
+        timeoutMs: 20_000,
+      });
+      recognitionRef.current = recognition;
+      setHint("正在听，松开后确认识别文字。");
+      recognition.result
+        .then((result) => {
+          setInput(result.transcript);
+          setHint("");
+        })
+        .catch((error) => setHint(error instanceof Error ? error.message : "请改为文字输入"));
     } catch (error) {
-      setHint(error instanceof Error ? error.message : "请改为文字输入");
+      setHint(error instanceof Error ? error.message : "请使用文字输入");
     }
+  }
+
+  function endListen() {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
   }
 
   async function submit() {
@@ -106,7 +123,7 @@ export function DialoguePage({ scene, previousScene, studyDay, navigate }: PageP
       content: turn.textJa,
     }));
     let responseText = partnerLines[Math.min(turnIndex + 1, partnerLines.length - 1)]?.jp ?? "はい、わかりました。";
-    let emotion: Emotion = simpleMode ? "encouraging" : "neutral";
+    let emotion: Emotion = "encouraging";
     let fixes: FixItem[] = [];
     let nextHint = "";
     if (proxyUrl) {
@@ -165,7 +182,7 @@ export function DialoguePage({ scene, previousScene, studyDay, navigate }: PageP
     setBusy(false);
   }
 
-  function markStruggle() {
+  function askForGuide() {
     const next = struggleCount + 1;
     setStruggleCount(next);
     setHint(nextKeyword(turnIndex));
@@ -173,9 +190,9 @@ export function DialoguePage({ scene, previousScene, studyDay, navigate }: PageP
   }
 
   return (
-    <Page eyebrow="10 MIN · 高压角色扮演" title={scene.place} back={() => navigate("home")}>
+    <Page eyebrow="10 MIN · 引导式角色扮演" title={scene.place} back={() => navigate("home")}>
       <div className="pressure-bar">
-        <span>ハルト · {simpleMode ? "简单模式" : emotionLabel[turns.at(-1)?.emotion ?? "neutral"]}</span>
+        <span>ハルト · {simpleMode ? "简单引导" : emotionLabel[turns.at(-1)?.emotion ?? "encouraging"]}</span>
         <button onClick={() => setShowSettings((value) => !value)}>AI 设置</button>
       </div>
       <p className="role-memory">ハルト记得前一次：{previousScene.title}</p>
@@ -198,13 +215,21 @@ export function DialoguePage({ scene, previousScene, studyDay, navigate }: PageP
       <div className="dialogue-compose">
         <textarea value={input} onChange={(event) => setInput(event.target.value)} placeholder="直接说日语。说「もう一回」可让对方重复。" />
         <div>
-          <button className="mic-round" onClick={listen}>声</button>
-          <button className="stuck-button" onClick={markStruggle}>卡住</button>
+          <button
+            className="mic-round"
+            onPointerDown={(event) => { event.preventDefault(); beginListen(); }}
+            onPointerUp={endListen}
+            onPointerCancel={endListen}
+            onPointerLeave={endListen}
+            aria-label="按住说话，松开结束"
+          >按住说</button>
+          <button className="stuck-button" onClick={askForGuide}>需要引导</button>
           <PrimaryButton onClick={submit} disabled={busy || !input.trim()}>{busy ? "接话中" : "回答"}</PrimaryButton>
         </div>
       </div>
-      <button className="text-button" onClick={() => playPartner(turnIndex, 1.14)}>更快一遍 · 压力变式</button>
-      <p className="privacy-note">原生语速默认 100%。浏览器识别文本不等于发音准确度。</p>
+      {simpleMode && <div className="guided-frame"><b>句框</b><span>{learnerLines[Math.min(turnIndex, learnerLines.length - 1)].hint}</span></div>}
+      <button className="text-button" onClick={() => playPartner(turnIndex)}>再听一遍这句话</button>
+      <p className="privacy-note">默认按原生语速引导。浏览器识别文本可在提交前直接修改，不代表发音准确度。</p>
     </Page>
   );
 }

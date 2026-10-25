@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Page, PrimaryButton } from "../components/Page";
 import { readSession } from "../lib/session";
-import { recognizeJapanese } from "../lib/speech";
+import { startJapaneseRecognition } from "../lib/speech";
+import type { RecognitionController } from "../lib/speech";
 import { isRecallPassing, scoreRecall } from "../lib/scoring";
 import type { PageProps } from "./types";
 
@@ -12,6 +13,7 @@ export function RepeatPage({ scene, studyDay, repo, navigate, refresh }: PagePro
   const target = fixes.at(-1)?.natural ?? learners.at(-1)?.jp ?? scene.natural[0].jp;
   const [input, setInput] = useState("");
   const [attempts, setAttempts] = useState(0);
+  const recognitionRef = useRef<RecognitionController | null>(null);
   const [result, setResult] = useState<ReturnType<typeof scoreRecall> | null>(null);
   const prompt = scene.variations[0]?.setup ?? "同样的场景，对方开始催促。";
 
@@ -37,13 +39,19 @@ export function RepeatPage({ scene, studyDay, repo, navigate, refresh }: PagePro
     }
   }
 
-  async function listen() {
+  function beginListen() {
     try {
-      const result = await recognizeJapanese({ onInterim: setInput });
-      setInput(result.transcript);
+      const recognition = startJapaneseRecognition({ onInterim: setInput, expected: target });
+      recognitionRef.current = recognition;
+      recognition.result.then((result) => setInput(result.transcript)).catch(() => undefined);
     } catch {
       // Text input remains available.
     }
+  }
+
+  function endListen() {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
   }
 
   return (
@@ -54,7 +62,12 @@ export function RepeatPage({ scene, studyDay, repo, navigate, refresh }: PagePro
         <p>目标表达：{fixes.at(-1)?.natural ?? "保持自然语体"}</p>
         <textarea value={input} onChange={(event) => setInput(event.target.value)} placeholder="现在再说一遍。" />
         <div className="inline-actions">
-          <button onClick={listen}>语音输入</button>
+          <button
+            onPointerDown={(event) => { event.preventDefault(); beginListen(); }}
+            onPointerUp={endListen}
+            onPointerCancel={endListen}
+            onPointerLeave={endListen}
+          >按住说话</button>
           <PrimaryButton onClick={evaluate} disabled={!input.trim()}>说完了</PrimaryButton>
         </div>
       </section>

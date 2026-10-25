@@ -1,7 +1,13 @@
 import type { RecallScore } from "../types";
 
+function kataToHira(value: string) {
+  return value.replace(/[\u30a1-\u30f6]/g, (char) =>
+    String.fromCharCode(char.charCodeAt(0) - 0x60),
+  );
+}
+
 function normalizeJapanese(value: string) {
-  return value
+  return kataToHira(value)
     .normalize("NFKC")
     .replace(/[、。！？!?「」『』（）()\s・,.]/g, "")
     .toLowerCase();
@@ -37,11 +43,15 @@ export function textSimilarity(expected: string, actual: string) {
 
 export function scoreRecall(input: {
   expected: string;
+  expectedKana?: string;
   transcript: string;
   latencyMs: number;
   durationMs: number;
 }): RecallScore {
-  const textScore = textSimilarity(input.expected, input.transcript);
+  const textScore = Math.max(
+    textSimilarity(input.expected, input.transcript),
+    input.expectedKana ? textSimilarity(input.expectedKana, input.transcript) : 0,
+  );
   const latencyScore = Math.max(0, Math.min(1, 1 - Math.max(0, input.latencyMs - 1_000) / 6_000));
   const expectedDuration = Math.max(1_500, normalizeJapanese(input.expected).length * 180);
   const durationRatio = input.durationMs / expectedDuration;

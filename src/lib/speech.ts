@@ -18,6 +18,9 @@ interface BrowserRecognition {
   interimResults: boolean;
   continuous: boolean;
   maxAlternatives: number;
+  grammars?: {
+    addFromString(value: string, weight?: number): void;
+  };
   onresult: ((event: RecognitionEvent) => void) | null;
   onerror: ((event: RecognitionErrorEvent) => void) | null;
   onend: (() => void) | null;
@@ -26,11 +29,14 @@ interface BrowserRecognition {
   abort(): void;
 }
 type RecognitionConstructor = new () => BrowserRecognition;
+type GrammarConstructor = new () => BrowserRecognition["grammars"];
 
 declare global {
   interface Window {
     SpeechRecognition?: RecognitionConstructor;
     webkitSpeechRecognition?: RecognitionConstructor;
+    SpeechGrammarList?: GrammarConstructor;
+    webkitSpeechGrammarList?: GrammarConstructor;
   }
 }
 
@@ -38,45 +44,122 @@ export function speechRecognitionAvailable() {
   return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
 }
 
-export function recognizeJapanese(options?: {
+export interface RecognitionController {
+  result: Promise<{
+    transcript: string;
+    confidence: number;
+    alternatives: string[];
+  }>;
+  stop: () => void;
+  abort: () => void;
+}
+
+export function startJapaneseRecognition(options?: {
   onInterim?: (text: string) => void;
+  expected?: string;
   timeoutMs?: number;
-}): Promise<{ transcript: string; confidence: number }> {
+}): RecognitionController {
   const Constructor = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Constructor) {
-    return Promise.reject(new Error("当前浏览器不支持 Web Speech 日语识别"));
+    throw new Error("当前浏览器不支持 Web Speech 日语识别");
   }
-  return new Promise((resolve, reject) => {
-    const recognition = new Constructor();
-    recognition.lang = "ja-JP";
-    recognition.interimResults = true;
-    recognition.continuous = false;
-    recognition.maxAlternatives = 3;
-    let finalText = "";
-    let confidence = 0;
-    const timeout = window.setTimeout(() => recognition.abort(), options?.timeoutMs ?? 12_000);
+  const recognition = new Constructor();
+  recognition.lang = "ja-JP";
+  recognition.interimResults = true;
+  recognition.continuous = true;
+  recognition.maxAlternatives = 5;
 
-    recognition.onresult = (event) => {
-      const result = event.results[event.results.length - 1];
-      const best = result[0];
-      if (!result.isFinal) {
-        options?.onInterim?.(best.transcript);
-        return;
-      }
-      finalText = best.transcript;
-      confidence = best.confidence;
-    };
-    recognition.onerror = (event) => {
-      window.clearTimeout(timeout);
-      reject(new Error(`语音识别失败：${event.error}`));
-    };
-    recognition.onend = () => {
-      window.clearTimeout(timeout);
-      if (!finalText) reject(new Error("没有识别到日语，请再说一次"));
-      else resolve({ transcript: finalText, confidence });
-    };
-    recognition.start();
+  const Grammar = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+  if (Grammar && recognition.grammars && options?.expected) {
+    try {
+      recognition.grammars.addFromString(`#JSGF V1.0; grammar phrase; public <phrase> = ${options.expected};`, 0.7);
+    } catch {
+      // Grammars are optional and browser support varies.
+    }
+  }
+
+  let finalText = "";
+  let confidence = 0;
+  let alternatives: string[] = [];
+  let settled = false;
+  let timeout = 0;
+  let resolvePromise!: RecognitionController["result"] extends Promise<infer T> ? (value: T) => void : never;
+  let rejectPromise!: (reason?: unknown) => void;
+  const result = new Promise<{
+    transcript: string;
+    confidence: number;
+    alternatives: string[];
+  }>((resolve, reject) => {
+    resolvePromise = resolve;
+    rejectPromise = reject;
   });
+
+  const finish = (sessionError?: string) => {
+    if (settled) return;
+    settled = true;
+    window.clearTimeout(timeout);
+    if (finalText || alternatives.length) {
+      resolvePromise({
+        transcript: alternatives[0] || finalText,
+        confidence,
+        alternatives,
+      });
+    } else if (sessionError) {
+      rejectPromise(new Error(sessionError));
+    } else {
+      rejectPromise(new Error("没有听到完整日语。请靠近麦克风，稍停一下再说。"));
+    }
+  };
+
+  recognition.onresult = (event) => {
+    const latest = event.results[event.results.length - 1];
+    const candidates = Array.from({ length: latest.length }, (_, index) => latest[index].transcript.trim()).filter(Boolean);
+    if (!latest.isFinal) {
+      options?.onInterim?.(candidates[0] || "");
+      return;
+    }
+    const best = latest[0];
+    finalText = `${finalText} ${best.transcript}`.trim();
+    confidence = Math.max(confidence, best.confidence || 0);
+    alternatives = Array.from(new Set([...alternatives, ...candidates])).slice(0, 5);
+    options?.onInterim?.(alternatives[0]);
+  };
+  recognition.onerror = (event) => {
+    const errors: Record<string, string> = {
+      "no-speech": "没有检测到说话声。请看到“正在听”后再开口。",
+      "audio-capture": "没有找到麦克风，或系统没有授予麦克风权限。",
+      network: "浏览器语音服务暂时不可用，请重试或使用文字校正。",
+      "not-allowed": "麦克风权限被拒绝。请在浏览器设置中允许麦克风。",
+      aborted: "本次识别已中止。",
+    };
+    finish(errors[event.error] || `语音识别失败：${event.error}`);
+  };
+  recognition.onend = () => finish();
+
+  try {
+    recognition.start();
+  } catch (error) {
+    finish(error instanceof Error ? error.message : "无法启动语音识别");
+  }
+  timeout = window.setTimeout(() => recognition.stop(), options?.timeoutMs ?? 15_000);
+
+  return {
+    result,
+    stop: () => {
+      try { recognition.stop(); } catch { finish(); }
+    },
+    abort: () => {
+      try { recognition.abort(); } catch { finish(); }
+    },
+  };
+}
+
+export function recognizeJapanese(options?: {
+  onInterim?: (text: string) => void;
+  expected?: string;
+  timeoutMs?: number;
+}) {
+  return startJapaneseRecognition(options).result;
 }
 
 export function recordingSupported() {

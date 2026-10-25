@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Page, PrimaryButton, Reading } from "../components/Page";
-import { recognizeJapanese } from "../lib/speech";
+import { startJapaneseRecognition } from "../lib/speech";
+import type { RecognitionController } from "../lib/speech";
 import type { PageProps } from "./types";
 
 export function ReviewPage({ studyDay, repo, navigate, refresh }: PageProps) {
@@ -8,16 +9,22 @@ export function ReviewPage({ studyDay, repo, navigate, refresh }: PageProps) {
   const [index, setIndex] = useState(0);
   const [input, setInput] = useState("");
   const [revealed, setRevealed] = useState(false);
+  const recognitionRef = useRef<RecognitionController | null>(null);
   const current = items[index];
 
-  async function listen() {
+  function beginListen() {
     try {
-      const result = await recognizeJapanese({ onInterim: setInput });
-      setInput(result.transcript);
-      setRevealed(true);
+      const recognition = startJapaneseRecognition({ onInterim: setInput, expected: current?.originalSentence });
+      recognitionRef.current = recognition;
+      recognition.result.then((result) => { setInput(result.transcript); setRevealed(true); }).catch(() => setRevealed(true));
     } catch {
       setRevealed(true);
     }
+  }
+
+  function endListen() {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
   }
 
   function rate(quality: 1 | 3 | 5) {
@@ -55,7 +62,12 @@ export function ReviewPage({ studyDay, repo, navigate, refresh }: PageProps) {
       </section>
       <textarea value={input} onChange={(event) => setInput(event.target.value)} placeholder="先大声说，再输入你实际说的内容。" />
       <div className="inline-actions">
-        <button onClick={listen}>语音回答</button>
+        <button
+          onPointerDown={(event) => { event.preventDefault(); beginListen(); }}
+          onPointerUp={endListen}
+          onPointerCancel={endListen}
+          onPointerLeave={endListen}
+        >按住回答</button>
         <button onClick={() => setRevealed(true)}>想不起来，显示答案</button>
       </div>
       {revealed && (

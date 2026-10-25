@@ -248,8 +248,11 @@ textarea, .text-fallback {
   color: #fff;
   background: var(--red);
   box-shadow: 0 0 0 12px rgba(212,71,52,.08), 0 13px 30px rgba(168,50,37,.2);
+  touch-action: none;
+  user-select: none;
 }
 .mic-orb span { font-size: 28px; }
+.hold-hint { margin: 13px 0 0; color: var(--muted); font-size: 8px; }
 .countdown { font-family: var(--serif); font-size: 90px; color: var(--red); }
 .recording-state { display: grid; gap: 14px; place-items: center; font-size: 10px; color: var(--red); }
 .recording-state i { width: 80px; height: 80px; border-radius: 50%; background: var(--red); animation: pulse 1s infinite; }
@@ -261,6 +264,12 @@ textarea, .text-fallback {
 .score-parts span { padding: 5px 8px; border-radius: 99px; color: var(--muted); font-size: 8px; background: var(--paper); }
 .score-panel p { color: var(--muted); font-size: 8px; line-height: 1.6; }
 .attempt-line { color: var(--red); font-size: 8px; }
+.confirm-panel { display: grid; gap: 9px; width: 100%; }
+.confirm-panel > span { color: var(--muted); font-size: 8px; text-align: center; }
+.confirm-panel textarea { min-height: 74px; }
+.confirm-panel audio { width: 100%; height: 34px; }
+.alternative-list { display: flex; flex-wrap: wrap; gap: 5px; }
+.alternative-list button { padding: 6px 8px; border: 1px solid var(--line); border-radius: 99px; color: var(--navy); font-size: 8px; background: var(--paper); }
 .transcript-box { margin-top: 12px; padding: 12px 14px; border-left: 3px solid var(--navy); background: var(--navy-wash); }
 .transcript-box span { display: block; color: var(--muted); font-size: 7px; }
 .transcript-box b { display: block; margin-top: 4px; font-family: var(--serif); font-size: 16px; }
@@ -316,9 +325,12 @@ textarea, .text-fallback {
 .dialog-hint b { display: block; margin-top: 3px; font-family: var(--serif); }
 .dialogue-compose { margin-top: 11px; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
 .dialogue-compose textarea { min-height: 68px; border: 0; padding: 0; }
-.dialogue-compose > div { display: grid; grid-template-columns: 40px auto 1fr; gap: 7px; align-items: center; margin-top: 7px; }
-.mic-round { width: 40px; height: 40px; border: 0; border-radius: 50%; color: #fff; background: var(--navy); }
+.dialogue-compose > div { display: grid; grid-template-columns: 62px auto 1fr; gap: 7px; align-items: center; margin-top: 7px; }
+.mic-round { width: 62px; height: 40px; border: 0; border-radius: 11px; color: #fff; font-size: 8px; background: var(--navy); touch-action: none; user-select: none; }
 .stuck-button { height: 40px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); font-size: 8px; background: var(--paper); }
+.guided-frame { display: flex; gap: 9px; align-items: center; margin-top: 10px; padding: 11px 12px; border-radius: 12px; background: var(--navy-wash); }
+.guided-frame b { color: var(--navy); font-size: 8px; }
+.guided-frame span { color: var(--muted); font-size: 9px; }
 
 .fix-list { display: grid; gap: 11px; }
 .fix-card { position: relative; padding: 18px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); }
@@ -340,7 +352,7 @@ textarea, .text-fallback {
 .repeat-card p { color: rgba(255,255,255,.65); font-size: 9px; }
 .repeat-card textarea { margin-top: 12px; color: var(--ink); }
 .inline-actions { display: flex; gap: 7px; margin-top: 9px; }
-.inline-actions button { min-height: 39px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; font-size: 8px; background: var(--paper); }
+.inline-actions button { min-height: 39px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; font-size: 8px; background: var(--paper); touch-action: none; user-select: none; }
 .inline-actions .primary-button { flex: 1; margin: 0; border: 0; }
 .repeat-result { display: grid; gap: 9px; margin-top: 12px; padding: 17px; border-radius: 16px; background: var(--red-wash); }
 .repeat-result.pass { background: var(--green-wash); }
