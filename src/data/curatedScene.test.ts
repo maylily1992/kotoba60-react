@@ -3,10 +3,10 @@ import { CURATED_DAY_ONE, CURATED_DAY_ONE_CARD_COUNT } from "./curatedScene";
 
 describe("curated Day 01", () => {
   it("contains a full airport journey without combinatorial duplicates", () => {
-    expect(CURATED_DAY_ONE.microScenes).toHaveLength(10);
-    expect(CURATED_DAY_ONE_CARD_COUNT).toBe(80);
+    expect(CURATED_DAY_ONE.microScenes).toHaveLength(13);
+    expect(CURATED_DAY_ONE_CARD_COUNT).toBe(104);
     const sentences = CURATED_DAY_ONE.microScenes.flatMap((scene) => scene.lines.map((line) => line.jp));
-    expect(new Set(sentences).size).toBe(80);
+    expect(new Set(sentences).size).toBe(104);
   });
 
   it("provides kana, Chinese, grammar and usage notes for every line", () => {

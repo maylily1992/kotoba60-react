@@ -681,9 +681,9 @@ body {
 .curated-index { color: #cba6b5; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 7px; }
 .curated-text { min-width: 0; }
 .curated-text b, .curated-text em, .curated-text small { display: block; }
-.curated-text b { overflow: hidden; color: #493944; font-family: var(--serif); font-size: 15px; line-height: 1.5; text-overflow: ellipsis; white-space: nowrap; }
-.curated-text em { overflow: hidden; margin-top: 2px; color: #b25978; font-size: 8px; font-style: normal; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
-.curated-text small { overflow: hidden; margin-top: 2px; color: #9b8490; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.curated-text b { overflow: visible; color: #493944; font-family: var(--serif); font-size: 15px; line-height: 1.55; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
+.curated-text em { overflow: visible; margin-top: 3px; color: #b25978; font-size: 8px; font-style: normal; line-height: 1.6; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
+.curated-text small { overflow: visible; margin-top: 3px; color: #9b8490; font-size: 8px; line-height: 1.55; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
 .curated-plus { color: #cf8da3; font-size: 15px; text-align: center; }
 .curated-heart { width: 34px; border: 0; color: #d99bb0; font-size: 17px; background: transparent; }
 .curated-heart.saved { color: #e55882; }
