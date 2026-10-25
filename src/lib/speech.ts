@@ -18,9 +18,6 @@ interface BrowserRecognition {
   interimResults: boolean;
   continuous: boolean;
   maxAlternatives: number;
-  grammars?: {
-    addFromString(value: string, weight?: number): void;
-  };
   onresult: ((event: RecognitionEvent) => void) | null;
   onerror: ((event: RecognitionErrorEvent) => void) | null;
   onend: (() => void) | null;
@@ -29,14 +26,11 @@ interface BrowserRecognition {
   abort(): void;
 }
 type RecognitionConstructor = new () => BrowserRecognition;
-type GrammarConstructor = new () => BrowserRecognition["grammars"];
 
 declare global {
   interface Window {
     SpeechRecognition?: RecognitionConstructor;
     webkitSpeechRecognition?: RecognitionConstructor;
-    SpeechGrammarList?: GrammarConstructor;
-    webkitSpeechGrammarList?: GrammarConstructor;
   }
 }
 
@@ -66,17 +60,9 @@ export function startJapaneseRecognition(options?: {
   const recognition = new Constructor();
   recognition.lang = "ja-JP";
   recognition.interimResults = true;
-  recognition.continuous = true;
+  // Short, push-to-talk utterances finalize more reliably with a single-result session.
+  recognition.continuous = false;
   recognition.maxAlternatives = 5;
-
-  const Grammar = window.SpeechGrammarList || window.webkitSpeechGrammarList;
-  if (Grammar && recognition.grammars && options?.expected) {
-    try {
-      recognition.grammars.addFromString(`#JSGF V1.0; grammar phrase; public <phrase> = ${options.expected};`, 0.7);
-    } catch {
-      // Grammars are optional and browser support varies.
-    }
-  }
 
   let finalText = "";
   let confidence = 0;

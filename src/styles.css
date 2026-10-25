@@ -114,6 +114,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
   letter-spacing: -.05em;
 }
 .lead { margin: 12px 0 24px; color: var(--muted); font-size: 12px; line-height: 1.75; }
+.build-version { margin: -13px 0 18px; color: #9a8c70; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 7px; letter-spacing: .05em; }
 
 .scene-ticket {
   position: relative;
@@ -448,6 +449,22 @@ textarea, .text-fallback {
 .weak-card-actions { display: flex; gap: 6px; margin-top: 11px; }
 .weak-card-actions button { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); font-size: 7px; background: var(--paper); }
 .empty-book { padding: 28px; border: 1px dashed var(--line); border-radius: 16px; color: var(--muted); font-size: 9px; text-align: center; }
+
+.mic-diagnostics {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(255,253,248,.7);
+}
+.mic-diagnostics summary { padding: 12px 13px; color: var(--muted); font-size: 8px; cursor: pointer; }
+.diagnostic-body { padding: 0 13px 13px; }
+.diagnostic-body > div:not(.diagnostic-result) { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 8px; }
+.diagnostic-body > div b { color: var(--ink); }
+.diagnostic-body > p { color: #8a806d; font-size: 8px; line-height: 1.65; }
+.diagnostic-mic { width: 100%; min-height: 44px; border: 0; border-radius: 11px; color: #fff; font-size: 9px; background: var(--navy); touch-action: none; user-select: none; }
+.diagnostic-result { display: grid; gap: 4px; margin-top: 9px; padding: 10px; border-radius: 9px; background: var(--paper); }
+.diagnostic-result b { font-size: 9px; }
+.diagnostic-result span { color: var(--muted); font-size: 8px; line-height: 1.5; }
 
 .quick-nav {
   z-index: 20;

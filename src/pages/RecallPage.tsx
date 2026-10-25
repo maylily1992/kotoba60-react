@@ -1,15 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Page, PrimaryButton } from "../components/Page";
+import { MicDiagnostics } from "../components/MicDiagnostics";
 import type { Attempt, RecallScore } from "../types";
 import { scoreRecall, isRecallPassing } from "../lib/scoring";
-import {
-  recordingSupported,
-  speechRecognitionAvailable,
-  startJapaneseRecognition,
-  startRecording,
-} from "../lib/speech";
+import { speechRecognitionAvailable, startJapaneseRecognition } from "../lib/speech";
 import type { RecognitionController } from "../lib/speech";
-import { saveRecording } from "../lib/db";
 import { createSession, readSession, updateSession } from "../lib/session";
 import type { PageProps } from "./types";
 
@@ -19,10 +14,8 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
   const learnerLines = useMemo(() => scene.dialogue.filter((line) => line.side === "learner"), [scene]);
   const [itemIndex, setItemIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("ready");
-  const [countdown, setCountdown] = useState(3);
   const [transcript, setTranscript] = useState("");
   const [alternatives, setAlternatives] = useState<string[]>([]);
-  const [recordingUrl, setRecordingUrl] = useState("");
   const [manualText, setManualText] = useState("");
   const [score, setScore] = useState<RecallScore | null>(null);
   const [error, setError] = useState("");
@@ -31,8 +24,6 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
   const [showKana, setShowKana] = useState(false);
   const startedAt = useRef(0);
   const recognitionRef = useRef<RecognitionController | null>(null);
-  const recordingRef = useRef<{ stop: () => Promise<{ blob: Blob; durationMs: number }> } | null>(null);
-  const releaseRequested = useRef(false);
   const holdingRef = useRef(false);
   const line = learnerLines[itemIndex];
   const mastered = score ? isRecallPassing(score) : false;
@@ -46,14 +37,12 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
     setPhase("ready");
     setTranscript("");
     setAlternatives([]);
-    setRecordingUrl("");
     setManualText("");
     setScore(null);
     setError("");
     setAttempts([]);
     setShowHint(false);
     setShowKana(false);
-    setCountdown(3);
   }
 
   function nextItem() {
@@ -88,7 +77,6 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
     setPhase("recording");
     holdingRef.current = true;
     startedAt.current = performance.now();
-    releaseRequested.current = false;
     try {
       if (!speechRecognitionAvailable()) {
         setError("此浏览器只有文字模式。请先大声说，再输入刚才说出的内容。");
@@ -101,23 +89,7 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
         timeoutMs: 20_000,
       });
       recognitionRef.current = recognition;
-      const recorder = recordingSupported() ? await startRecording().catch(() => null) : null;
-      recordingRef.current = recorder;
-      if (releaseRequested.current) void recorder?.stop();
       const result = await recognition.result;
-      const recording = recorder ? await recorder.stop() : null;
-      if (recording?.blob.size) {
-        const objectUrl = URL.createObjectURL(recording.blob);
-        setRecordingUrl(objectUrl);
-        await saveRecording({
-          id: crypto.randomUUID(),
-          sessionId: `recall-${scene.id}-${studyDay}`,
-          blob: recording.blob,
-          mimeType: recording.blob.type,
-          durationMs: recording.durationMs,
-          createdAt: Date.now(),
-        }).catch(() => undefined);
-      }
       setTranscript(result.transcript);
       setAlternatives(result.alternatives);
       setPhase("confirm");
@@ -127,17 +99,14 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
     } finally {
       holdingRef.current = false;
       recognitionRef.current = null;
-      recordingRef.current = null;
     }
   }
 
   function endHold() {
     if (!holdingRef.current) return;
     holdingRef.current = false;
-    releaseRequested.current = true;
     setPhase("processing");
     recognitionRef.current?.stop();
-    void recordingRef.current?.stop();
   }
 
   function scoreAnswer(value = transcript) {
@@ -217,7 +186,6 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
                 {alternatives.map((item, index) => <button key={`${item}-${index}`} onClick={() => setTranscript(item)}>{item}</button>)}
               </div>
             )}
-            {recordingUrl && <audio controls src={recordingUrl} />}
             <PrimaryButton onClick={() => scoreAnswer(transcript)} disabled={!transcript.trim()}>识别正确，开始评分</PrimaryButton>
           </div>
         )}
@@ -238,7 +206,7 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
       {transcript && <div className="transcript-box"><span>识别结果</span><b>{transcript}</b></div>}
       {error && <p className="inline-error">{error}</p>}
 
-      {!mastered && phase !== "recording" && phase !== "confirm" && (
+      {!mastered && phase !== "recording" && phase !== "processing" && phase !== "confirm" && (
         <div className="hint-row">
           <button className="secondary-button" onClick={() => setShowHint(true)}>卡住了 · 给 1 个关键词</button>
           {showHint && <div className="hint-fragment">{getHint(line.hint)}</div>}
@@ -261,6 +229,7 @@ export function RecallPage({ scene, studyDay, repo, navigate, refresh }: PagePro
           <PrimaryButton onClick={nextItem}>{itemIndex === learnerLines.length - 1 ? "进入对话" : "下一句"}</PrimaryButton>
         </div>
       )}
+      <MicDiagnostics />
     </Page>
   );
 }

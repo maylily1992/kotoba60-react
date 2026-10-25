@@ -16,6 +16,7 @@ export function HomePage({ scene, studyDay, repo, navigate, shuffleScene, refres
       <p className="eyebrow">DAY {String(scene.id).padStart(2, "0")} / {scene.category}</p>
       <h1>每天把一句日语<br />种进身体里。</h1>
       <p className="lead">不考你认不认得，只考你张嘴来不来得及。</p>
+      <p className="build-version">语音引擎 v4 · 单麦克风 · 长按说话</p>
 
       <section className="scene-ticket">
         <div>
