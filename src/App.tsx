@@ -1,5 +1,5 @@
-import { FriendApp } from "./friend/FriendApp";
+import { SentenceApp } from "./sentence/SentenceApp";
 
 export default function App() {
-  return <FriendApp />;
+  return <SentenceApp />;
 }
