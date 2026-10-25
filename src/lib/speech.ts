@@ -169,7 +169,7 @@ export function speakJapanese(text: string, rate = 1) {
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "ja-JP";
   utterance.rate = rate;
-  utterance.pitch = 1.18;
+  utterance.pitch = 1.42;
   const voice = synth.getVoices().find((item) => item.lang.toLowerCase().startsWith("ja"));
   if (voice) utterance.voice = voice;
   synth.speak(utterance);

@@ -16,6 +16,10 @@ export function dialogueAudio(sceneId: number, index: number) {
   return `${AUDIO_BASE}s${String(sceneId).padStart(2, "0")}-l${index + 1}.mp3`;
 }
 
+export function naturalAudio(sceneId: number, index: number) {
+  return `${AUDIO_BASE}s${String(sceneId).padStart(2, "0")}-n${index + 1}.mp3`;
+}
+
 export function grammarAudio(moduleId: string, index: number) {
   return `${AUDIO_BASE}grammar-${moduleId}-${index + 1}.mp3`;
 }

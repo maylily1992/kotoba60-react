@@ -1,4 +1,4 @@
-const CACHE = "kotoba60-react-v1";
+const CACHE = "kotoba60-haru-v1";
 const CORE = ["./", "./index.html", "./manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
