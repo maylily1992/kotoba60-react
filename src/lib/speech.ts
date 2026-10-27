@@ -168,9 +168,14 @@ export function speakJapanese(text: string, rate = 1) {
   synth.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "ja-JP";
-  utterance.rate = rate;
-  utterance.pitch = 1.42;
-  const voice = synth.getVoices().find((item) => item.lang.toLowerCase().startsWith("ja"));
+  utterance.rate = Math.min(1.08, Math.max(0.82, rate));
+  utterance.pitch = 1.18;
+  utterance.volume = 1;
+  const japaneseVoices = synth.getVoices().filter((item) => item.lang.toLowerCase().startsWith("ja"));
+  const preferred = ["otoya", "takumi", "hattori", "ichiro", "male", "男性"];
+  const voice =
+    japaneseVoices.find((item) => preferred.some((name) => item.name.toLowerCase().includes(name))) ??
+    japaneseVoices[0];
   if (voice) utterance.voice = voice;
   synth.speak(utterance);
 }
