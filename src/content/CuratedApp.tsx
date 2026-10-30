@@ -6,7 +6,7 @@ import {
   type CuratedDay,
   type CuratedLine,
 } from "../data/curatedDays";
-import type { LineScope } from "../data/curatedDayTypes";
+import type { CuratedGrammar, LineScope } from "../data/curatedDayTypes";
 import { speakJapanese } from "../lib/speech";
 
 type Tab = "cards" | "summary" | "favorites";
@@ -320,6 +320,7 @@ export function CuratedApp() {
                       key={card.id}
                       card={card}
                       index={index}
+                      grammarGuides={day.grammar}
                       saved={favorites.some((item) => sameLine(item, card))}
                       mastered={mastered.includes(card.id)}
                       onSave={() => toggleFavorite(card)}
@@ -390,6 +391,7 @@ function LoadingDay({ day }: { day: number }) {
 function CuratedCard({
   card,
   index,
+  grammarGuides,
   saved,
   mastered,
   onSave,
@@ -397,6 +399,7 @@ function CuratedCard({
 }: {
   card: Card;
   index: number;
+  grammarGuides: CuratedGrammar[];
   saved: boolean;
   mastered: boolean;
   onSave: () => void;
@@ -427,6 +430,15 @@ function CuratedCard({
         >
           {saved ? "♥" : "♡"}
         </button>
+        <button
+          className="curated-inline-listen"
+          onClick={() => speakJapanese(card.jp, 1)}
+          aria-label={`朗读：${card.jp}`}
+          title="朗读这句"
+        >
+          <b>♪</b>
+          <small>听</small>
+        </button>
       </div>
       {open && (
         <div className="curated-detail">
@@ -444,10 +456,8 @@ function CuratedCard({
           <div className="curated-note">
             <b>为什么这样说</b><span>{card.note}</span>
           </div>
+          <LineGrammarPanel card={card} guides={grammarGuides} />
           <div className="card-actions">
-            <button className="curated-listen" onClick={() => speakJapanese(card.jp, 1)}>
-              ♪ 听少年朗读
-            </button>
             <button
               className={`master-button ${mastered ? "done" : ""}`}
               onClick={onMastered}
@@ -461,6 +471,339 @@ function CuratedCard({
         </div>
       )}
     </article>
+  );
+}
+
+type GrammarGuide = Pick<CuratedGrammar, "formula" | "useWhen" | "contrast" | "mistake">;
+
+const QUICK_GRAMMAR: Record<string, GrammarGuide> = {
+  "〜てください": {
+    formula: "动词て形 + ください",
+    useWhen: "把操作步骤或请求说清楚，适合店员、站务员和柜台人员。",
+    contrast: "比命令形温和；比「〜てもらえますか」更像标准流程或直接请求。",
+    mistake: "辞书形不能直接接「ください」，必须先变成て形。",
+  },
+  "〜てもらえますか": {
+    formula: "动词て形 + もらえますか",
+    useWhen: "请别人为自己做一件事，并把选择空间留给对方。",
+    contrast: "比「〜てください」柔和；「〜ていただけますか」更正式。",
+    mistake: "不要把て形写成辞书形；也不要漏掉句尾的「か」。",
+  },
+  "〜ませんか": {
+    formula: "动词ます形去ます + ませんか",
+    useWhen: "邀请、提议或试探对方意愿，语气比「ましょう」更留余地。",
+    contrast: "「〜ましょう」像双方已经决定；「〜ませんか」把决定权交回去。",
+    mistake: "不要写成「行くませんか」，应是「行きませんか」。",
+  },
+  "〜ましょうか": {
+    formula: "动词ます形去ます + ましょうか",
+    useWhen: "主动提出帮忙，或确认接下来由谁做什么。",
+    contrast: "「〜ますか」问事实；「〜ましょうか」常含有“我可以来做”。",
+    mistake: "这不是单纯未来时；重点是提议、承担或确认下一步。",
+  },
+  "〜たいです": {
+    formula: "动词ます形去ます + たいです",
+    useWhen: "表达自己当下想做的动作，点餐、购物和说明需求时高频。",
+    contrast: "「〜つもりです」更强调计划；「〜たいです」强调愿望。",
+    mistake: "否定要说「たくないです」；第三人称愿望需要额外说明。",
+  },
+  "可能形": {
+    formula: "五段动词え段 + る／一段动词去る + られる／する→できる",
+    useWhen: "确认能力、设备是否可用或某件事是否允许完成。",
+    contrast: "「〜ことができます」更完整正式；可能形更短、更口语。",
+    mistake: "不要把可能形和被动形混用；助词和语境会一起改变。",
+  },
+  "〜ています": {
+    formula: "动词て形 + います",
+    useWhen: "表示动作正在进行，也常表示动作完成后留下的状态。",
+    contrast: "「〜ます」说习惯或未来；「〜ています」更贴近眼前的持续状态。",
+    mistake: "不要一律翻成“正在”，例如「持っています」常是“拿着/拥有”。",
+  },
+  "〜ておきます": {
+    formula: "动词て形 + おきます",
+    useWhen: "提前做准备，让之后的行动更顺。",
+    contrast: "「〜てしまいます」强调完成或遗憾；「〜ておきます」强调预备。",
+    mistake: "口语里可能缩成「〜ときます」，不要误听成普通动词。",
+  },
+  "〜てしまいます": {
+    formula: "动词て形 + しまいます",
+    useWhen: "强调彻底完成，或表达不小心、遗憾的结果。",
+    contrast: "「〜ておきます」是有意准备；「〜てしまいます」更像已经发生的结果。",
+    mistake: "正式场合少用过度口语化的「〜ちゃう／〜じゃう」。",
+  },
+  "〜たことがあります": {
+    formula: "动词た形 + ことがあります",
+    useWhen: "谈经历，重点是有没有发生过，而不是具体发生时间。",
+    contrast: "「〜ました」说某个确定时间；这个句型不谈具体时间。",
+    mistake: "刚刚发生的事不要用经历句型。",
+  },
+  "〜つもりです": {
+    formula: "动词辞书形／ない形 + つもりです",
+    useWhen: "表达自己已经形成的意图或打算。",
+    contrast: "「〜予定です」可以是客观日程；「〜つもりです」更偏本人意志。",
+    mistake: "不要直接用它推断别人内心，除非上下文明确。",
+  },
+  "〜予定です": {
+    formula: "名词 + の／动词辞书形 + 予定です",
+    useWhen: "说明已经安排好的计划、预计到达或公共日程。",
+    contrast: "「〜つもりです」偏个人意志；「〜予定です」更适合日程。",
+    mistake: "动词后直接接「予定」，不要多加「の」。",
+  },
+  "〜かもしれません": {
+    formula: "普通形 + かもしれません",
+    useWhen: "表示可能但不肯定，为判断保留余地。",
+    contrast: "「〜でしょう」把握更高；「〜かもしれません」更不确定。",
+    mistake: "礼貌句尾已经包含「です」，不要再说「ですかもしれません」。",
+  },
+  "〜でしょう": {
+    formula: "普通形 + でしょう",
+    useWhen: "根据现场信息做较高把握的推测，或寻求对方同意。",
+    contrast: "「〜と思います」明确是说话人的判断；「でしょう」更像共同推测。",
+    mistake: "名词和な形容词不要重复接「ですでしょう」。",
+  },
+  "〜んです": {
+    formula: "普通形 + んです；名词／な形容词加「な」",
+    useWhen: "说明背景、困难或原因，让句子带有“请接着听/请回应”的感觉。",
+    contrast: "普通礼貌体只是陈述；「〜んです」更强调解释和谈话铺垫。",
+    mistake: "不要堆成「んですです」，句尾只保留一套礼貌体。",
+  },
+  "〜ので": {
+    formula: "普通形 + ので；名词／な形容词加「な」",
+    useWhen: "说明较柔和的客观原因，适合取消、迟到、换房和忌口。",
+    contrast: "「〜から」更主观直接；「〜ので」更适合服务场景。",
+    mistake: "表目的时通常用「ために」，不要全部用「ので」。",
+  },
+  "〜のに": {
+    formula: "普通形 + のに",
+    useWhen: "事实与期待相反时表达意外、遗憾或轻微不满。",
+    contrast: "「〜けど」只是转折；「〜のに」的情绪更明显。",
+    mistake: "服务场景里语气容易变重，先陈述事实，再决定是否使用。",
+  },
+  "〜たら": {
+    formula: "动词／形容词た形 + ら",
+    useWhen: "前项成立后出现后项，也用于现场发现和一次性假设。",
+    contrast: "「〜と」更像自然规律；「〜たら」适合具体现场条件。",
+    mistake: "这里的「た」不表示过去，整个句子仍可谈未来。",
+  },
+  "〜なら": {
+    formula: "名词／普通形 + なら",
+    useWhen: "承接对方刚提到的话题，再给出判断、建议或追问。",
+    contrast: "「〜たら」提出条件；「〜なら」更像“既然你说到这个”。",
+    mistake: "不要把它机械等同于中文“如果”，重点常在承接话题。",
+  },
+  "〜ば": {
+    formula: "动词ば形／い形容词词干 + ければ",
+    useWhen: "表示条件，也常组成「〜ばいいですか」询问最佳做法。",
+    contrast: "「〜と」偏自然结果；「〜ば」更强调条件是否满足。",
+    mistake: "五段动词不能直接辞书形加「ば」。",
+  },
+  "〜と": {
+    formula: "动词辞书形 + と",
+    useWhen: "表示一做前项就自然出现后项，或恒定、规则化的结果。",
+    contrast: "「〜たら」适合一次性条件；「〜と」更像自然结果。",
+    mistake: "后项通常不直接接自己的意志请求。",
+  },
+  "〜ながら": {
+    formula: "动词ます形去ます + ながら",
+    useWhen: "同一个主体同时做两个动作，后项通常是主要动作。",
+    contrast: "前项是伴随背景，不是两个完全并列的动作。",
+    mistake: "前后动作不是同一主体时，不能直接使用。",
+  },
+  "〜ために": {
+    formula: "名词 + の／动词辞书形 + ために",
+    useWhen: "说明目的，也可接名词化原因表示“因为”。",
+    contrast: "目的和原因接续相同，必须靠上下文判断。",
+    mistake: "名词目的不要漏掉「の」，例如「観光ために」不自然。",
+  },
+  "〜ように": {
+    formula: "动词辞书形／ない形 + ように",
+    useWhen: "表示为了让能力、状态或习惯成立。",
+    contrast: "可意志控制的目的多用「ために」；能力变化常用「ように」。",
+    mistake: "「〜ようにする」是尽量做到，不是已经完成。",
+  },
+  "〜すぎます": {
+    formula: "形容词词干／动词ます形去ます + すぎます",
+    useWhen: "程度超过合适范围，常带“太多、太烫、太贵”的评价。",
+    contrast: "「とても」只说程度高；「〜すぎる」明确超过界限。",
+    mistake: "い形容词去「い」，な形容词和动词直接接「すぎる」。",
+  },
+  "〜やすい／にくい": {
+    formula: "动词ます形去ます + やすい／にくい",
+    useWhen: "表示动作做起来容易或困难。",
+    contrast: "这是派生い形容词，会继续按い形容词变化。",
+    mistake: "「〜にくい」是“难做”，不是“不要做”。",
+  },
+  "〜ほうがいい": {
+    formula: "动词た形／ない形 + ほうがいい",
+    useWhen: "给出建议；肯定建议常用た形，否定建议用ない形。",
+    contrast: "「〜てください」直接要求；「〜ほうがいい」是在给判断。",
+    mistake: "肯定建议不要说成辞书形接「ほうがいい」。",
+  },
+  "〜より": {
+    formula: "AよりBのほうが…",
+    useWhen: "比较两个对象，说明B在某方面更突出。",
+    contrast: "「〜ほど」常用于程度和否定比较；「〜より」标出比较基准。",
+    mistake: "完整比较通常用「Bのほうが」呼应。",
+  },
+  "〜だけ": {
+    formula: "名词／数量 + だけ",
+    useWhen: "限定范围或数量：只、仅。",
+    contrast: "「〜しか〜ない」必须配否定；「〜だけ」可以接肯定。",
+    mistake: "注意「だけ」修饰的范围，避免放错位置。",
+  },
+  "〜しか〜ない": {
+    formula: "名词 + しか + 否定形",
+    useWhen: "表示只有这一种选择或数量，并带限制感。",
+    contrast: "「〜だけある」可肯定；「〜しかない」必须配否定。",
+    mistake: "不要说「しかあります」；谓语需要否定。",
+  },
+  "〜ばかり": {
+    formula: "名词／动词て形 + ばかり",
+    useWhen: "表示净是某物、刚刚做完或反复偏向某行为。",
+    contrast: "「〜だけ」是限定数量；「〜ばかり」还能带评价。",
+    mistake: "“刚刚”常用「たばかり」，不要误接成て形。",
+  },
+  "〜ところです": {
+    formula: "辞书形／ている／た形 + ところです",
+    useWhen: "强调动作阶段：将做、正在做或刚做完。",
+    contrast: "「〜ています」单纯持续；「〜ところ」把时间点拉近。",
+    mistake: "不是所有动词都能自然搭配，需要看动作阶段。",
+  },
+  "被动形": {
+    formula: "五段あ段 + れる／一段去る + られる／する→される",
+    useWhen: "从承受动作的人视角叙述，也可表示受害感。",
+    contrast: "被动与可能形部分形式相同，需要靠助词和语境判断。",
+    mistake: "动作执行者通常用「に」标记，不要全部用「を」。",
+  },
+  "使役形": {
+    formula: "五段あ段 + せる／一段去る + させる／する→させる",
+    useWhen: "表示让某人做某事，或允许某事发生。",
+    contrast: "请别人帮忙通常用「てもらう」，不是直接使役。",
+    mistake: "直接对长辈使用容易显得居高临下。",
+  },
+  "です・ます礼貌体": {
+    formula: "名词／な形容词 + です；动词ます形 + ます",
+    useWhen: "旅行中面对店员、陌生人和服务人员时最稳妥的默认语体。",
+    contrast: "普通体更像朋友间说话；礼貌体风险更低，但不必过度敬语化。",
+    mistake: "同一句不要混用普通体和礼貌体；先保证句尾统一。",
+  },
+  "核心句": {
+    formula: "按本句完整表达块记忆，再拆出可替换的词位",
+    useWhen: "这是实景中最直接可调用的一句话，先保证完整说出。",
+    contrast: "先学整句的节奏和落点，不必立刻逐词分析成中文语序。",
+    mistake: "不要只记住关键词；助词和句尾往往决定关系和语气。",
+  },
+};
+
+function particleGuide(label: string): GrammarGuide | null {
+  if (label.includes("を押") || label === "を押してください") {
+    return {
+      formula: "动作对象 + を + 他动词",
+      useWhen: "「を」标出动作直接作用的对象，例如按按钮、取票、拿行李。",
+      contrast: "「が」常标出状态主体或新信息；「を」强调被操作的对象。",
+      mistake: "不要把他动词的对象错标成「が」，除非句子结构已经改变。",
+    };
+  }
+  if (label.includes("にあります") || label.includes("に泊ま") || label.includes("にいます")) {
+    return {
+      formula: "存在地点 + に + あります／います",
+      useWhen: "「に」标记存在位置；人和动物用「います」，物和设施用「あります」。",
+      contrast: "「で」标记动作发生地点；「に」在这里更像存在落点。",
+      mistake: "不要把人说成「あります」，也不要把设施说成「います」。",
+    };
+  }
+  if (label.includes("で買") || label.includes("で払") || label.includes("で行")) {
+    return {
+      formula: "手段／地点 + で + 动词",
+      useWhen: "「で」可表示交通工具、支付工具或动作发生的地点。",
+      contrast: "「に」多指方向或存在点；「で」更强调完成动作的场域或手段。",
+      mistake: "不要看到中文“在”就机械用「で」，先判断是地点还是存在。",
+    };
+  }
+  if (label.includes("から") || label.includes("まで")) {
+    return {
+      formula: "起点 + から；终点 + まで",
+      useWhen: "「から」标出起点，「まで」标出范围终点，可指空间或时间。",
+      contrast: "「を」可表示经过或离开的路径，不等于单纯的起点。",
+      mistake: "不要漏掉终点前的助词，也不要和方向助词「へ」混用。",
+    };
+  }
+  if (label.includes("だけ")) {
+    return QUICK_GRAMMAR["〜だけ"];
+  }
+  if (label.includes("も")) {
+    return {
+      formula: "名词 + も",
+      useWhen: "「も」把新信息和前一项并列，表示“也、同样”。",
+      contrast: "「は」提出主题；「も」通常暗示前面还有同类信息。",
+      mistake: "不要把「も」当成单纯的“和”，两个名词并列仍需「と」。",
+    };
+  }
+  return null;
+}
+
+function grammarGuideFor(card: Card, guides: CuratedGrammar[]): GrammarGuide {
+  const exact = guides.find((guide) => guide.title === card.grammar);
+  if (exact) return exact;
+  const quick = QUICK_GRAMMAR[card.grammar] ?? particleGuide(card.grammar);
+  if (quick) return quick;
+  return {
+    formula: card.grammar,
+    useWhen: `这句在“${card.micro}”里完成“${card.function}”。先保留完整表达，再把对象、地点或时间换成自己的真实信息。`,
+    contrast: card.note,
+    mistake: "先把助词和句尾一起记；只换名词却保留错助词，会让句子听起来不自然。",
+  };
+}
+
+function transferExercises(card: Card) {
+  const followUp =
+    card.function.includes("问") || card.function.includes("确认")
+      ? "そうなんですね。ありがとうございます。"
+      : card.function.includes("问题") || card.function.includes("求助")
+        ? "では、どうすればいいですか。"
+        : card.function.includes("收尾") || card.function.includes("致谢")
+          ? "またお願いします。"
+          : "もう一度お願いします。";
+  return [
+    {
+      label: "换对象",
+      text: `把「${card.jp}」改成对朋友说：保留“${card.function}”的目的，只把礼貌度降下来。`,
+    },
+    {
+      label: "换信息",
+      text: `保留「${card.grammar}」的结构，把句中的时间、地点、物品或人物换成你明天真实会遇到的内容。`,
+    },
+    {
+      label: "接一轮",
+      text: `先完整说出这句，再补一句「${followUp}」，练成两轮连续回应。`,
+    },
+  ];
+}
+
+function LineGrammarPanel({ card, guides }: { card: Card; guides: CuratedGrammar[] }) {
+  const guide = grammarGuideFor(card, guides);
+  return (
+    <div className="line-grammar-panel">
+      <div className="line-grammar-head">
+        <span>GRAMMAR BREAKDOWN</span>
+        <b>本句语法拆解</b>
+      </div>
+      <div className="line-grammar-grid">
+        <div><span>接续 / 结构</span><b>{guide.formula}</b></div>
+        <div><span>本句为什么用它</span><p>{guide.useWhen}</p></div>
+        <div><span>和相近说法怎么分</span><p>{guide.contrast}</p></div>
+        <div className="line-grammar-warning"><span>最容易错在这里</span><p>{guide.mistake}</p></div>
+      </div>
+      <div className="line-transfer">
+        <div className="line-transfer-title"><span>TRANSFER</span><b>把这句迁移出去</b></div>
+        {transferExercises(card).map((item, index) => (
+          <div className="line-transfer-item" key={item.label}>
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <div><b>{item.label}</b><p>{item.text}</p></div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
