@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DAY_META, loadCuratedDay } from "./curatedDays";
 import type { CuratedDay, CuratedLine } from "./curatedDayTypes";
+import { SCENE_CULTURE } from "./sceneCulture";
 
 function normalize(text: string) {
   return text.replace(/[\s、。，．！？!?「」『』（）()・…ー~〜]/g, "");
@@ -92,6 +93,15 @@ describe("complete curated 60-day atlas", () => {
         item.formula && item.useWhen && item.contrast && item.mistake && item.example && item.kana
       )).toBe(true);
     }
+  });
+
+  it("gives every scene a local-culture note for per-line explanations", () => {
+    expect(Object.keys(SCENE_CULTURE)).toHaveLength(60);
+    expect(
+      Array.from({ length: 60 }, (_, index) => index + 1).every(
+        (day) => SCENE_CULTURE[day]?.title && SCENE_CULTURE[day]?.text,
+      ),
+    ).toBe(true);
   });
 
   it("keeps Day 01 as a fully hand-authored airport scene", async () => {

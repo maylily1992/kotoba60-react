@@ -6,7 +6,8 @@ import {
   type CuratedDay,
   type CuratedLine,
 } from "../data/curatedDays";
-import type { CuratedGrammar, LineScope } from "../data/curatedDayTypes";
+import type { CuratedGrammar, CuratedWord, LineScope } from "../data/curatedDayTypes";
+import { SCENE_CULTURE } from "../data/sceneCulture";
 import { speakJapanese } from "../lib/speech";
 
 type Tab = "cards" | "summary" | "favorites";
@@ -321,6 +322,9 @@ export function CuratedApp() {
                       card={card}
                       index={index}
                       grammarGuides={day.grammar}
+                      words={day.words}
+                      siblings={cards}
+                      culture={SCENE_CULTURE[day.day]}
                       saved={favorites.some((item) => sameLine(item, card))}
                       mastered={mastered.includes(card.id)}
                       onSave={() => toggleFavorite(card)}
@@ -392,6 +396,9 @@ function CuratedCard({
   card,
   index,
   grammarGuides,
+  words,
+  siblings,
+  culture,
   saved,
   mastered,
   onSave,
@@ -400,6 +407,9 @@ function CuratedCard({
   card: Card;
   index: number;
   grammarGuides: CuratedGrammar[];
+  words: CuratedWord[];
+  siblings: Card[];
+  culture: { title: string; text: string };
   saved: boolean;
   mastered: boolean;
   onSave: () => void;
@@ -456,7 +466,13 @@ function CuratedCard({
           <div className="curated-note">
             <b>为什么这样说</b><span>{card.note}</span>
           </div>
-          <LineGrammarPanel card={card} guides={grammarGuides} />
+          <LineLearningPanel
+            card={card}
+            guides={grammarGuides}
+            words={words}
+            siblings={siblings}
+            culture={culture}
+          />
           <div className="card-actions">
             <button
               className={`master-button ${mastered ? "done" : ""}`}
@@ -755,51 +771,261 @@ function grammarGuideFor(card: Card, guides: CuratedGrammar[]): GrammarGuide {
   };
 }
 
-function transferExercises(card: Card) {
+const COMMON_VOCAB: CuratedWord[] = [
+  { jp: "今日", kana: "きょう", zh: "今天" },
+  { jp: "明日", kana: "あした", zh: "明天" },
+  { jp: "今", kana: "いま", zh: "现在" },
+  { jp: "時間", kana: "じかん", zh: "时间" },
+  { jp: "場所", kana: "ばしょ", zh: "地点" },
+  { jp: "本当", kana: "ほんとう", zh: "真的" },
+  { jp: "少し", kana: "すこし", zh: "一点" },
+  { jp: "ちょっと", kana: "ちょっと", zh: "稍微、一下" },
+  { jp: "大丈夫", kana: "だいじょうぶ", zh: "没问题、不用" },
+  { jp: "お願い", kana: "おねがい", zh: "请求、麻烦" },
+  { jp: "すみません", kana: "すみません", zh: "不好意思、对不起" },
+  { jp: "ありがとう", kana: "ありがとう", zh: "谢谢" },
+  { jp: "ここ", kana: "ここ", zh: "这里" },
+  { jp: "そこ", kana: "そこ", zh: "那里" },
+  { jp: "どこ", kana: "どこ", zh: "哪里" },
+  { jp: "これ", kana: "これ", zh: "这个" },
+  { jp: "それ", kana: "それ", zh: "那个" },
+  { jp: "何", kana: "なに", zh: "什么" },
+  { jp: "人", kana: "ひと", zh: "人" },
+  { jp: "駅", kana: "えき", zh: "车站" },
+  { jp: "電車", kana: "でんしゃ", zh: "电车" },
+  { jp: "店", kana: "みせ", zh: "商店" },
+  { jp: "水", kana: "みず", zh: "水" },
+  { jp: "食べる", kana: "たべる", zh: "吃" },
+  { jp: "飲む", kana: "のむ", zh: "喝" },
+  { jp: "行く", kana: "いく", zh: "去" },
+  { jp: "来る", kana: "くる", zh: "来" },
+  { jp: "帰る", kana: "かえる", zh: "回去" },
+  { jp: "買う", kana: "かう", zh: "买" },
+  { jp: "払う", kana: "はらう", zh: "支付" },
+  { jp: "使う", kana: "つかう", zh: "使用" },
+  { jp: "分かる", kana: "わかる", zh: "明白" },
+  { jp: "予約", kana: "よやく", zh: "预约" },
+  { jp: "部屋", kana: "へや", zh: "房间" },
+  { jp: "荷物", kana: "にもつ", zh: "行李" },
+  { jp: "カード", kana: "かーど", zh: "卡" },
+  { jp: "現金", kana: "げんきん", zh: "现金" },
+  { jp: "値段", kana: "ねだん", zh: "价格" },
+  { jp: "何時", kana: "なんじ", zh: "几点" },
+  { jp: "いくら", kana: "いくら", zh: "多少钱" },
+];
+
+const FRIENDLY_OPENERS = [
+  "这句在现场很好用，别先把它当成一条语法题。",
+  "先想象你真的站在那个柜台前，这句话就有节奏了。",
+  "这句的难点不在汉字，而在说话时把重点落在哪里。",
+  "日本朋友听到这句，最先感受到的是你的态度，不是你的词汇量。",
+  "这句不用背得很“标准”，但要说得让人马上知道你想推进什么。",
+  "把中文意思先放一边，这句话其实是在替你做一件事。",
+  "这句很适合拿来练“说完以后对方知道怎么接”。",
+  "先把这句话当一个完整动作，不要逐词翻译成中文。",
+];
+
+function stableIndex(text: string, length: number) {
+  let value = 0;
+  for (const char of text) value = (value * 31 + char.charCodeAt(0)) % 100000;
+  return value % length;
+}
+
+function matchesVocabulary(sentence: string, word: CuratedWord) {
+  const surface = word.jp;
+  if (!surface) return false;
+  if (surface.length === 1) return sentence === surface;
+  if (sentence.includes(surface)) return true;
+  if (surface.startsWith("お") && surface.length > 2 && sentence.includes(surface.slice(1))) return true;
+  if (surface.endsWith("る") && surface.length > 2) {
+    const stem = surface.slice(0, -1);
+    if (sentence.includes(stem)) return true;
+  }
+  if (surface.endsWith("い") && surface.length > 2 && sentence.includes(surface.slice(0, -1))) {
+    return true;
+  }
+  return false;
+}
+
+function vocabularyFor(card: Card, words: CuratedWord[]) {
+  const seen = new Set<string>();
+  return [...words, ...COMMON_VOCAB]
+    .filter((word) => matchesVocabulary(card.jp, word))
+    .filter((word) => {
+      if (seen.has(word.jp)) return false;
+      seen.add(word.jp);
+      return true;
+    })
+    .slice(0, 4);
+}
+
+function friendlyComment(card: Card) {
+  const opener = FRIENDLY_OPENERS[stableIndex(card.id, FRIENDLY_OPENERS.length)];
+  const focus =
+    card.function.includes("问") || card.function.includes("确认")
+      ? `这句的重点是把「${card.grammar}」放在一个对方能回答的位置。`
+      : card.function.includes("请求") || card.function.includes("需求")
+        ? `这句不是命令，而是把「${card.function}」说成对方容易执行的动作。`
+        : card.function.includes("问题") || card.function.includes("求助")
+          ? `这句先把困难摆出来，再给对方一个明确的帮助入口。`
+          : card.function.includes("收尾") || card.function.includes("致谢")
+            ? `这句负责把关系收好，不要只说关键词就转身走。`
+            : `这句的关键是把「${card.function}」落到一个具体场景里。`;
+  return `${opener} 中文是「${card.zh}」，日语则用「${card.jp}」完成这件事。${focus} ${card.note}`;
+}
+
+function casualVersion(card: Card) {
+  const text = card.jp;
+  if (text.includes("んですが")) return text.replace("んですが", "んだけど");
+  if (text.includes("たいです")) return text.replace("たいです", "たい");
+  if (text.includes("てください")) return text.replace("てください", "てもらえる？");
+  if (text.includes("でください")) return text.replace("でください", "でもらえる？");
+  if (text.includes("ですか")) return text.replace("ですか", "？");
+  if (text.includes("をお願いします")) return text.replace("をお願いします", "、お願い");
+  if (text.includes("をください")) return text.replace("をください", "、お願い");
+  return text;
+}
+
+function migrationAnswers(card: Card, siblings: Card[]) {
+  const sameGrammarOptions = siblings.filter(
+    (item) => item.id !== card.id && item.grammar === card.grammar,
+  );
+  const sameFunctionOptions = siblings.filter(
+    (item) => item.id !== card.id && item.function === card.function,
+  );
+  const responseOptions = siblings.filter(
+    (item) => item.id !== card.id && item.function.includes("回应"),
+  );
+  const sameGrammar = sameGrammarOptions[stableIndex(card.id, Math.max(1, sameGrammarOptions.length))];
+  const sameFunction = sameFunctionOptions[stableIndex(card.id, Math.max(1, sameFunctionOptions.length))];
+  const response = responseOptions[stableIndex(card.id, Math.max(1, responseOptions.length))];
   const followUp =
     card.function.includes("问") || card.function.includes("确认")
-      ? "そうなんですね。ありがとうございます。"
+      ? "はい、わかりました。ありがとうございます。"
       : card.function.includes("问题") || card.function.includes("求助")
         ? "では、どうすればいいですか。"
         : card.function.includes("收尾") || card.function.includes("致谢")
           ? "またお願いします。"
-          : "もう一度お願いします。";
+          : "はい、お願いします。";
   return [
     {
       label: "换对象",
-      text: `把「${card.jp}」改成对朋友说：保留“${card.function}”的目的，只把礼貌度降下来。`,
+      task: "把这句话说给朋友听，礼貌度可以降低，但不要丢掉原来的交流目的。",
+      answer: casualVersion(card),
+      note: casualVersion(card) === card.jp
+        ? "保留下来的礼貌体在朋友间也不会失礼，尤其是初次见面或场合较正式时。"
+        : "这是更熟一点的版本；如果要特别礼貌，仍可使用原句。",
     },
     {
       label: "换信息",
-      text: `保留「${card.grammar}」的结构，把句中的时间、地点、物品或人物换成你明天真实会遇到的内容。`,
+      task: "保留同一个语法骨架，把时间、地点、物品或人物换成你自己的信息。",
+      answer: sameGrammar?.jp ?? sameFunction?.jp ?? card.jp,
+      note: sameGrammar
+        ? `这是当天另一句同结构表达：「${sameGrammar.zh}」。`
+        : sameFunction
+          ? `这是同一种交流功能的另一种说法：「${sameFunction.zh}」。`
+          : "先把原句里的一个信息点替换掉，句尾不要跟着乱改。",
     },
     {
       label: "接一轮",
-      text: `先完整说出这句，再补一句「${followUp}」，练成两轮连续回应。`,
+      task: "说完原句后，再接一句能把对话继续下去的话，别让场面停在单词上。",
+      answer: response?.jp ?? followUp,
+      note: response
+        ? `这是当天学过的回应句：「${response.zh}」。`
+        : "这是安全的通用接话；真正的对话里也可以根据对方的回答再追问。",
     },
   ];
 }
 
-function LineGrammarPanel({ card, guides }: { card: Card; guides: CuratedGrammar[] }) {
+function sentenceShape(card: Card) {
+  if (/[か？?]$/.test(card.jp.replace("。", ""))) {
+    return "这是一个把信息缺口交给对方的问句。说的时候句尾保持上扬，但不要把「か」吞掉。";
+  }
+  if (/ください|お願い|てもらえ|ていただけ|ませんか/.test(card.jp)) {
+    return "这是请求或协商句。先让对方听清“要做什么”，再让句尾负责礼貌度。";
+  }
+  if (/ません|ない|なくて|ずに/.test(card.jp)) {
+    return "句子里有否定。听力上最危险的是漏掉「ない／ません」，否则整句方向会反过来。";
+  }
+  if (/ました|でした|かったです/.test(card.jp)) {
+    return "这是已完成或过去状态。和「今日／昨日／さっき」这类时间词一起说，信息会更完整。";
+  }
+  return "这是陈述或回应句。先把主题和信息块说完整，再用「です／ます」把礼貌度稳定下来。";
+}
+
+function LineLearningPanel({
+  card,
+  guides,
+  words,
+  siblings,
+  culture,
+}: {
+  card: Card;
+  guides: CuratedGrammar[];
+  words: CuratedWord[];
+  siblings: Card[];
+  culture: { title: string; text: string };
+}) {
   const guide = grammarGuideFor(card, guides);
+  const vocabulary = vocabularyFor(card, words);
+  const answers = migrationAnswers(card, siblings);
   return (
-    <div className="line-grammar-panel">
-      <div className="line-grammar-head">
-        <span>GRAMMAR BREAKDOWN</span>
-        <b>本句语法拆解</b>
+    <div className="line-learning-panel">
+      <div className="friend-explain">
+        <span>朋友式讲解</span>
+        <p>{friendlyComment(card)}</p>
       </div>
+
+      <div className="line-vocabulary">
+        <div className="line-subhead"><span>WORDS</span><b>本句里的词</b></div>
+        {vocabulary.length > 0 ? (
+          <div className="line-vocab-list">
+            {vocabulary.map((word) => (
+              <div key={`${word.jp}-${word.kana}`}>
+                <b>{word.jp}</b><span>{word.kana}</span><small>{word.zh}</small>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="no-new-word">
+            这句没有需要单独死记的场景名词，重点是句尾的「{card.grammar}」和「{card.function}」这个功能块。
+          </p>
+        )}
+        <p className="line-shape"><b>句子形状</b>{sentenceShape(card)}</p>
+      </div>
+
+      <div className="line-culture">
+        <div className="line-subhead"><span>LOCAL NOTE</span><b>当地小观察 · {culture.title}</b></div>
+        <p>{culture.text}</p>
+      </div>
+
+      <div className="line-subhead grammar-subhead"><span>GRAMMAR</span><b>这句为什么这样说</b></div>
       <div className="line-grammar-grid">
-        <div><span>接续 / 结构</span><b>{guide.formula}</b></div>
-        <div><span>本句为什么用它</span><p>{guide.useWhen}</p></div>
+        <div>
+          <span>结构怎么拼</span>
+          <b>{guide.formula}</b>
+          <small className="line-example">{card.jp}</small>
+          <small>{card.kana}</small>
+        </div>
+        <div><span>在这句里做什么</span><p>{guide.useWhen} 本句具体是在“{card.micro}”里完成“{card.function}”。</p></div>
         <div><span>和相近说法怎么分</span><p>{guide.contrast}</p></div>
-        <div className="line-grammar-warning"><span>最容易错在这里</span><p>{guide.mistake}</p></div>
+        <div className="line-grammar-warning"><span>你最容易错在这里</span><p>{guide.mistake}</p></div>
       </div>
+
       <div className="line-transfer">
-        <div className="line-transfer-title"><span>TRANSFER</span><b>把这句迁移出去</b></div>
-        {transferExercises(card).map((item, index) => (
+        <div className="line-transfer-title"><span>TRANSFER + ANSWER</span><b>迁移练习与参考答案</b></div>
+        {answers.map((item, index) => (
           <div className="line-transfer-item" key={item.label}>
             <span>{String(index + 1).padStart(2, "0")}</span>
-            <div><b>{item.label}</b><p>{item.text}</p></div>
+            <div>
+              <b>{item.label}</b>
+              <p>{item.task}</p>
+              <div className="transfer-answer">
+                <span>参考答案</span>
+                <q>{item.answer}</q>
+                <small>{item.note}</small>
+              </div>
+            </div>
           </div>
         ))}
       </div>
