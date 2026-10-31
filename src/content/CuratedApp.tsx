@@ -875,19 +875,30 @@ function friendlyComment(card: Card) {
   return `${opener} 中文是「${card.zh}」，日语则用「${card.jp}」完成这件事。${focus} ${card.note}`;
 }
 
-function casualVersion(card: Card) {
+export function casualVersion(card: Card) {
   const text = card.jp;
-  if (text.includes("んですが")) return text.replace("んですが", "んだけど");
-  if (text.includes("たいです")) return text.replace("たいです", "たい");
-  if (text.includes("てください")) return text.replace("てください", "てもらえる？");
-  if (text.includes("でください")) return text.replace("でください", "でもらえる？");
-  if (text.includes("ですか")) return text.replace("ですか", "？");
-  if (text.includes("をお願いします")) return text.replace("をお願いします", "、お願い");
-  if (text.includes("をください")) return text.replace("をください", "、お願い");
-  return text;
+  const kana = card.kana;
+  const transformations: Array<[string, string, string, string]> = [
+    ["んですが", "んだけど", "んですが", "んだけど"],
+    ["たいです", "たい", "たいです", "たい"],
+    ["てください", "てもらえる？", "てください", "てもらえる？"],
+    ["でください", "でもらえる？", "でください", "でもらえる？"],
+    ["ですか", "？", "ですか", "？"],
+    ["をお願いします", "、お願い", "をおねがいします", "、おねがい"],
+    ["をください", "、お願い", "をください", "、おねがい"],
+  ];
+  for (const [fromJp, toJp, fromKana, toKana] of transformations) {
+    if (text.includes(fromJp)) {
+      return {
+        jp: text.replace(fromJp, toJp),
+        kana: kana.replace(fromKana, toKana),
+      };
+    }
+  }
+  return { jp: text, kana };
 }
 
-function migrationAnswers(card: Card, siblings: Card[]) {
+export function migrationAnswers(card: Card, siblings: Card[]) {
   const sameGrammarOptions = siblings.filter(
     (item) => item.id !== card.id && item.grammar === card.grammar,
   );
@@ -902,25 +913,42 @@ function migrationAnswers(card: Card, siblings: Card[]) {
   const response = responseOptions[stableIndex(card.id, Math.max(1, responseOptions.length))];
   const followUp =
     card.function.includes("问") || card.function.includes("确认")
-      ? "はい、わかりました。ありがとうございます。"
+      ? {
+          jp: "はい、わかりました。ありがとうございます。",
+          kana: "はい、わかりました。ありがとうございます。",
+        }
       : card.function.includes("问题") || card.function.includes("求助")
-        ? "では、どうすればいいですか。"
+        ? {
+            jp: "では、どうすればいいですか。",
+            kana: "では、どうすればいいですか。",
+          }
         : card.function.includes("收尾") || card.function.includes("致谢")
-          ? "またお願いします。"
-          : "はい、お願いします。";
+          ? {
+              jp: "またお願いします。",
+              kana: "またおねがいします。",
+            }
+          : {
+              jp: "はい、お願いします。",
+              kana: "はい、おねがいします。",
+            };
+  const friendlyAnswer = casualVersion(card);
   return [
     {
       label: "换对象",
       task: "把这句话说给朋友听，礼貌度可以降低，但不要丢掉原来的交流目的。",
-      answer: casualVersion(card),
-      note: casualVersion(card) === card.jp
+      answer: friendlyAnswer,
+      note: friendlyAnswer.jp === card.jp
         ? "保留下来的礼貌体在朋友间也不会失礼，尤其是初次见面或场合较正式时。"
         : "这是更熟一点的版本；如果要特别礼貌，仍可使用原句。",
     },
     {
       label: "换信息",
       task: "保留同一个语法骨架，把时间、地点、物品或人物换成你自己的信息。",
-      answer: sameGrammar?.jp ?? sameFunction?.jp ?? card.jp,
+      answer: sameGrammar
+        ? { jp: sameGrammar.jp, kana: sameGrammar.kana }
+        : sameFunction
+          ? { jp: sameFunction.jp, kana: sameFunction.kana }
+          : { jp: card.jp, kana: card.kana },
       note: sameGrammar
         ? `这是当天另一句同结构表达：「${sameGrammar.zh}」。`
         : sameFunction
@@ -930,7 +958,7 @@ function migrationAnswers(card: Card, siblings: Card[]) {
     {
       label: "接一轮",
       task: "说完原句后，再接一句能把对话继续下去的话，别让场面停在单词上。",
-      answer: response?.jp ?? followUp,
+      answer: response ? { jp: response.jp, kana: response.kana } : followUp,
       note: response
         ? `这是当天学过的回应句：「${response.zh}」。`
         : "这是安全的通用接话；真正的对话里也可以根据对方的回答再追问。",
@@ -1048,7 +1076,8 @@ function LineLearningPanel({
               <p>{item.task}</p>
               <div className="transfer-answer">
                 <span>参考答案</span>
-                <q>{item.answer}</q>
+                <q>{item.answer.jp}</q>
+                <small className="transfer-kana">{item.answer.kana}</small>
                 <small>{item.note}</small>
               </div>
             </div>
