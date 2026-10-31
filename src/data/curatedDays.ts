@@ -1,5 +1,5 @@
 import { CURATED_DAY_ONE } from "./curatedScene";
-import type { CuratedDay, CuratedLine, DayMeta } from "./curatedDayTypes";
+import type { CuratedDay, CuratedLine, DayMeta, LineToken } from "./curatedDayTypes";
 import { DAY_META } from "./generated/manifest";
 
 export { DAY_META };
@@ -31,17 +31,33 @@ const DAY_ONE: CuratedDay = {
 };
 
 const modules = import.meta.glob<{ default: CuratedDay }>("./generated/day-*.ts");
-const cache = new Map<number, CuratedDay>([[1, DAY_ONE]]);
+const tokenModules = import.meta.glob<{ default: Record<string, LineToken[]> }>(
+  "./tokens/day-*.ts",
+);
+const cache = new Map<number, CuratedDay>();
 
 export async function loadCuratedDay(day: number): Promise<CuratedDay> {
   const cached = cache.get(day);
   if (cached) return cached;
+  if (day === 1) {
+    const tokenLoader = tokenModules["./tokens/day-01.ts"];
+    const tokenPayload = tokenLoader ? await tokenLoader() : { default: {} };
+    const result = { ...DAY_ONE, tokens: tokenPayload.default };
+    cache.set(day, result);
+    return result;
+  }
   const key = `./generated/day-${String(day).padStart(2, "0")}.ts`;
   const loader = modules[key];
   if (!loader) throw new Error(`没有找到第 ${day} 天课程`);
-  const loaded = (await loader()).default;
-  cache.set(day, loaded);
-  return loaded;
+  const tokenKey = `./tokens/day-${String(day).padStart(2, "0")}.ts`;
+  const tokenLoader = tokenModules[tokenKey];
+  const [loaded, tokenPayload] = await Promise.all([
+    loader(),
+    tokenLoader ? tokenLoader() : Promise.resolve({ default: {} }),
+  ]);
+  const result = { ...loaded.default, tokens: tokenPayload.default };
+  cache.set(day, result);
+  return result;
 }
 
 export const TOTAL_DAY_COUNT = DAY_META.length;

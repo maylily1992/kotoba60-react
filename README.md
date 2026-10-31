@@ -24,6 +24,7 @@
 - 第 01 天：Kotoba60 人工编排原创场景。
 - 第 02–60 天：以 [Tatoeba](https://tatoeba.org/) 的日语—中文直接句对和日语—英语—中文桥梁句对为基础，经场景筛选、近似去重、人工场景核心补充和逐句假名重建。中文统一转换为简体显示。
 - Tatoeba 语料许可：[CC BY 2.0 FR](https://creativecommons.org/licenses/by/2.0/fr/)。
+- 逐词释义使用 [Trilingual Dictionary](https://github.com/Chiarandini/trilingual-dict) 的离线词典数据作为构建来源，其数据派生自 JMdict、KANJIDIC2（CC BY-SA 3.0）和 CC-CEDICT（CC BY-SA 4.0）；生成的逐词释义数据按相同分享方式标注。
 
 ## 运行
 

@@ -6,7 +6,7 @@ import {
   type CuratedDay,
   type CuratedLine,
 } from "../data/curatedDays";
-import type { CuratedGrammar, CuratedWord, LineScope } from "../data/curatedDayTypes";
+import type { CuratedGrammar, LineScope, LineToken } from "../data/curatedDayTypes";
 import { getCounterGuide } from "../data/counterGuide";
 import { SCENE_CULTURE } from "../data/sceneCulture";
 import { speakJapanese } from "../lib/speech";
@@ -323,7 +323,7 @@ export function CuratedApp() {
                       card={card}
                       index={index}
                       grammarGuides={day.grammar}
-                      words={day.words}
+                      tokens={day.tokens?.[card.id] ?? []}
                       siblings={cards}
                       culture={SCENE_CULTURE[day.day]}
                       saved={favorites.some((item) => sameLine(item, card))}
@@ -397,7 +397,7 @@ function CuratedCard({
   card,
   index,
   grammarGuides,
-  words,
+  tokens,
   siblings,
   culture,
   saved,
@@ -408,7 +408,7 @@ function CuratedCard({
   card: Card;
   index: number;
   grammarGuides: CuratedGrammar[];
-  words: CuratedWord[];
+  tokens: LineToken[];
   siblings: Card[];
   culture: { title: string; text: string };
   saved: boolean;
@@ -470,7 +470,7 @@ function CuratedCard({
           <LineLearningPanel
             card={card}
             guides={grammarGuides}
-            words={words}
+            tokens={tokens}
             siblings={siblings}
             culture={culture}
           />
@@ -772,49 +772,6 @@ function grammarGuideFor(card: Card, guides: CuratedGrammar[]): GrammarGuide {
   };
 }
 
-const COMMON_VOCAB: CuratedWord[] = [
-  { jp: "今日", kana: "きょう", zh: "今天" },
-  { jp: "明日", kana: "あした", zh: "明天" },
-  { jp: "今", kana: "いま", zh: "现在" },
-  { jp: "時間", kana: "じかん", zh: "时间" },
-  { jp: "場所", kana: "ばしょ", zh: "地点" },
-  { jp: "本当", kana: "ほんとう", zh: "真的" },
-  { jp: "少し", kana: "すこし", zh: "一点" },
-  { jp: "ちょっと", kana: "ちょっと", zh: "稍微、一下" },
-  { jp: "大丈夫", kana: "だいじょうぶ", zh: "没问题、不用" },
-  { jp: "お願い", kana: "おねがい", zh: "请求、麻烦" },
-  { jp: "すみません", kana: "すみません", zh: "不好意思、对不起" },
-  { jp: "ありがとう", kana: "ありがとう", zh: "谢谢" },
-  { jp: "ここ", kana: "ここ", zh: "这里" },
-  { jp: "そこ", kana: "そこ", zh: "那里" },
-  { jp: "どこ", kana: "どこ", zh: "哪里" },
-  { jp: "これ", kana: "これ", zh: "这个" },
-  { jp: "それ", kana: "それ", zh: "那个" },
-  { jp: "何", kana: "なに", zh: "什么" },
-  { jp: "人", kana: "ひと", zh: "人" },
-  { jp: "駅", kana: "えき", zh: "车站" },
-  { jp: "電車", kana: "でんしゃ", zh: "电车" },
-  { jp: "店", kana: "みせ", zh: "商店" },
-  { jp: "水", kana: "みず", zh: "水" },
-  { jp: "食べる", kana: "たべる", zh: "吃" },
-  { jp: "飲む", kana: "のむ", zh: "喝" },
-  { jp: "行く", kana: "いく", zh: "去" },
-  { jp: "来る", kana: "くる", zh: "来" },
-  { jp: "帰る", kana: "かえる", zh: "回去" },
-  { jp: "買う", kana: "かう", zh: "买" },
-  { jp: "払う", kana: "はらう", zh: "支付" },
-  { jp: "使う", kana: "つかう", zh: "使用" },
-  { jp: "分かる", kana: "わかる", zh: "明白" },
-  { jp: "予約", kana: "よやく", zh: "预约" },
-  { jp: "部屋", kana: "へや", zh: "房间" },
-  { jp: "荷物", kana: "にもつ", zh: "行李" },
-  { jp: "カード", kana: "かーど", zh: "卡" },
-  { jp: "現金", kana: "げんきん", zh: "现金" },
-  { jp: "値段", kana: "ねだん", zh: "价格" },
-  { jp: "何時", kana: "なんじ", zh: "几点" },
-  { jp: "いくら", kana: "いくら", zh: "多少钱" },
-];
-
 const FRIENDLY_OPENERS = [
   "这句在现场很好用，别先把它当成一条语法题。",
   "先想象你真的站在那个柜台前，这句话就有节奏了。",
@@ -830,34 +787,6 @@ function stableIndex(text: string, length: number) {
   let value = 0;
   for (const char of text) value = (value * 31 + char.charCodeAt(0)) % 100000;
   return value % length;
-}
-
-function matchesVocabulary(sentence: string, word: CuratedWord) {
-  const surface = word.jp;
-  if (!surface) return false;
-  if (surface.length === 1) return sentence === surface;
-  if (sentence.includes(surface)) return true;
-  if (surface.startsWith("お") && surface.length > 2 && sentence.includes(surface.slice(1))) return true;
-  if (surface.endsWith("る") && surface.length > 2) {
-    const stem = surface.slice(0, -1);
-    if (sentence.includes(stem)) return true;
-  }
-  if (surface.endsWith("い") && surface.length > 2 && sentence.includes(surface.slice(0, -1))) {
-    return true;
-  }
-  return false;
-}
-
-function vocabularyFor(card: Card, words: CuratedWord[]) {
-  const seen = new Set<string>();
-  return [...words, ...COMMON_VOCAB]
-    .filter((word) => matchesVocabulary(card.jp, word))
-    .filter((word) => {
-      if (seen.has(word.jp)) return false;
-      seen.add(word.jp);
-      return true;
-    })
-    .slice(0, 4);
 }
 
 function friendlyComment(card: Card) {
@@ -985,18 +914,17 @@ function sentenceShape(card: Card) {
 function LineLearningPanel({
   card,
   guides,
-  words,
+  tokens,
   siblings,
   culture,
 }: {
   card: Card;
   guides: CuratedGrammar[];
-  words: CuratedWord[];
+  tokens: LineToken[];
   siblings: Card[];
   culture: { title: string; text: string };
 }) {
   const guide = grammarGuideFor(card, guides);
-  const vocabulary = vocabularyFor(card, words);
   const counterGuide = getCounterGuide(card.jp);
   const answers = migrationAnswers(card, siblings);
   return (
@@ -1007,20 +935,25 @@ function LineLearningPanel({
       </div>
 
       <div className="line-vocabulary">
-        <div className="line-subhead"><span>WORDS</span><b>本句里的词</b></div>
-        {vocabulary.length > 0 ? (
-          <div className="line-vocab-list">
-            {vocabulary.map((word) => (
-              <div key={`${word.jp}-${word.kana}`}>
-                <b>{word.jp}</b><span>{word.kana}</span><small>{word.zh}</small>
+        <div className="line-subhead">
+          <span>WORD BY WORD</span><b>逐词拆解 · 共 {tokens.length} 个成分</b>
+        </div>
+        <div className="line-token-list">
+          {tokens.map((token, index) => (
+            <div className="line-token" key={`${token.surface}-${token.kana}-${index}`}>
+              <span className="token-index">{String(index + 1).padStart(2, "0")}</span>
+              <div className="token-word">
+                <b>{token.surface}</b>
+                <span>{token.kana}</span>
+                {token.base && <small>辞书形：{token.base}</small>}
               </div>
-            ))}
-          </div>
-        ) : (
-          <p className="no-new-word">
-            这句没有需要单独死记的场景名词，重点是句尾的「{card.grammar}」和「{card.function}」这个功能块。
-          </p>
-        )}
+              <div className="token-meaning">
+                <em>{token.pos}</em>
+                <p>{token.meaning}</p>
+              </div>
+            </div>
+          ))}
+        </div>
         <p className="line-shape"><b>句子形状</b>{sentenceShape(card)}</p>
       </div>
 
@@ -1188,7 +1121,9 @@ function CuratedSummary({
         <b>内容与许可</b>
         <p>
           第 01 天为人工编排原创场景；第 02–60 天以 Tatoeba 开放句对为语料，
-          经场景筛选、近似去重与逐句假名重建，中文采用简体显示。
+          经场景筛选、近似去重与逐句假名重建，中文采用简体显示。逐词释义使用
+          JMdict、KANJIDIC2（CC BY-SA 3.0）与 CC-CEDICT（CC BY-SA 4.0）
+          派生的离线双语词典数据。
         </p>
         <a href="https://tatoeba.org/" target="_blank" rel="noreferrer">
           Tatoeba · CC BY 2.0 FR

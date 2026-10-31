@@ -57,7 +57,7 @@ describe("complete curated 60-day atlas", () => {
           line.zh &&
           line.grammar &&
           line.note &&
-          !/[\u3400-\u9fffA-Za-z]/.test(line.kana),
+          !/[\u3400-\u9fffA-Za-z\[\]]/.test(line.kana),
       ),
     ).toBe(true);
   });
@@ -102,6 +102,32 @@ describe("complete curated 60-day atlas", () => {
         (day) => SCENE_CULTURE[day]?.title && SCENE_CULTURE[day]?.text,
       ),
     ).toBe(true);
+  });
+
+  it("explains every token in every sentence with clean hiragana", async () => {
+    const days = await Promise.all(
+      Array.from({ length: 60 }, (_, index) => loadCuratedDay(index + 1)),
+    );
+
+    for (const day of days) {
+      for (const micro of day.microScenes) {
+        for (const line of micro.lines) {
+          const tokens = day.tokens?.[line.id] ?? [];
+          expect(tokens.length, `${line.id} should have token explanations`).toBeGreaterThan(0);
+          expect(
+            tokens.every(
+              (token) =>
+                token.surface &&
+                token.kana &&
+                token.pos &&
+                token.meaning &&
+                !/[\u3400-\u9fffA-Za-z\u30a1-\u30f6\[\]]/.test(token.kana),
+            ),
+            `${line.id} contains an unexplained or non-hiragana token`,
+          ).toBe(true);
+        }
+      }
+    }
   });
 
   it("keeps Day 01 as a fully hand-authored airport scene", async () => {

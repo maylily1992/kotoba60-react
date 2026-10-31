@@ -19,6 +19,14 @@ export interface CuratedMicroScene {
   lines: CuratedLine[];
 }
 
+export interface LineToken {
+  surface: string;
+  kana: string;
+  base?: string;
+  pos: string;
+  meaning: string;
+}
+
 export interface CuratedWord {
   jp: string;
   kana: string;
@@ -55,6 +63,7 @@ export interface CuratedDay {
   transfers: string[];
   anchors?: CuratedLine[];
   source?: DaySource;
+  tokens?: Record<string, LineToken[]>;
 }
 
 export interface DayMeta {
