@@ -7,6 +7,7 @@ import {
   type CuratedLine,
 } from "../data/curatedDays";
 import type { CuratedGrammar, CuratedWord, LineScope } from "../data/curatedDayTypes";
+import { getCounterGuide } from "../data/counterGuide";
 import { SCENE_CULTURE } from "../data/sceneCulture";
 import { speakJapanese } from "../lib/speech";
 
@@ -968,6 +969,7 @@ function LineLearningPanel({
 }) {
   const guide = grammarGuideFor(card, guides);
   const vocabulary = vocabularyFor(card, words);
+  const counterGuide = getCounterGuide(card.jp);
   const answers = migrationAnswers(card, siblings);
   return (
     <div className="line-learning-panel">
@@ -993,6 +995,30 @@ function LineLearningPanel({
         )}
         <p className="line-shape"><b>句子形状</b>{sentenceShape(card)}</p>
       </div>
+
+      {counterGuide && (
+        <div className="counter-reference">
+          <div className="line-subhead">
+            <span>NUMBER CHEAT SHEET</span><b>{counterGuide.title}</b>
+          </div>
+          <p className="counter-intro">{counterGuide.intro}</p>
+          <div className="counter-grid">
+            {counterGuide.rows.map((row) => (
+              <div
+                key={row.label}
+                className={row.label === counterGuide.activeLabel ? "active" : ""}
+              >
+                <b>{row.label}</b>
+                <span>{row.kana}</span>
+                <small>{row.zh}</small>
+              </div>
+            ))}
+          </div>
+          <div className="counter-notes">
+            {counterGuide.notes.map((note) => <p key={note}>{note}</p>)}
+          </div>
+        </div>
+      )}
 
       <div className="line-culture">
         <div className="line-subhead"><span>LOCAL NOTE</span><b>当地小观察 · {culture.title}</b></div>

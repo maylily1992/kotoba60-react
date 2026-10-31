@@ -1099,6 +1099,78 @@ body {
 .line-culture > p {
   color: #78694f;
 }
+.counter-reference {
+  padding: 11px 12px;
+  border-bottom: 1px solid #f1dae3;
+  background: #f7fbfa;
+}
+.counter-intro {
+  margin: 0 0 8px;
+  color: #637976;
+  font-size: 9px;
+  line-height: 1.7;
+}
+.counter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+.counter-grid > div {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 1px 7px;
+  align-items: center;
+  padding: 7px 8px;
+  border: 1px solid #ddebe8;
+  border-radius: 8px;
+  background: #fff;
+}
+.counter-grid > div.active {
+  border-color: #82b5aa;
+  background: #e9f6f2;
+  box-shadow: inset 3px 0 #6aa294;
+}
+.counter-grid b {
+  grid-row: span 2;
+  color: #426b63;
+  font-family: var(--serif);
+  font-size: 12px;
+}
+.counter-grid > div.active b {
+  color: #276357;
+}
+.counter-grid span {
+  color: #5d7f79;
+  font-size: 8px;
+}
+.counter-grid small {
+  color: #91a29e;
+  font-size: 6px;
+}
+.counter-notes {
+  margin-top: 7px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.72);
+}
+.counter-notes p {
+  position: relative;
+  margin: 0;
+  padding: 3px 0 3px 10px;
+  color: #748783;
+  font-size: 7px;
+  line-height: 1.6;
+}
+.counter-notes p::before {
+  position: absolute;
+  top: 8px;
+  left: 1px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #78a69c;
+  content: "";
+}
 .grammar-subhead {
   margin: 0;
   padding: 10px 12px 7px;
